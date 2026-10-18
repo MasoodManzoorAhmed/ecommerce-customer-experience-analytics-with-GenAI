@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 2 in progress: audit done; next: `notebooks/01_eda.ipynb` (5 insights + statistical test)
+## Status: Day 2 complete; next: Day 3 ML (`src/features.py`, late-delivery model)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -21,7 +21,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 
 ### Day 2: Data-quality audit + EDA
 - [x] `notebooks/00_data_quality_audit.ipynb` + `docs/DATA_QUALITY_REPORT.md`: 45 checks in `sql/04_data_quality_checks.sql` (decision + action stored beside each check), run by `src/data_quality.py`; tests in `tests/test_db.py` (4 pass)
-- [ ] `notebooks/01_eda.ipynb` + 5 insights (with numbers), incl. payment method vs approval/delivery time
+- [x] `notebooks/01_eda.ipynb` + 5 insights (with numbers), incl. payment method vs approval/delivery time; stats in `src/stats.py` (tests in `tests/test_stats.py`), extracts in `sql/05_eda_queries.sql`; figures in `docs/figures/eda_*.png`
 
 ### Day 3: ML
 - [ ] `src/features.py` (purchase-time features, seller history from earlier orders only)
@@ -87,6 +87,15 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Geolocation exact duplicate rows | 261,831 of 1,000,163 (26.18%) | `geo_exact_duplicate_rows` |
 | 2026-10-19 | Orders without items: canceled / unavailable | 164 / 603 (767 of 775) | ad-hoc check |
 | 2026-10-19 | Delivered orders missing approval timestamp | 14 | audit notebook §2 |
+| 2026-10-19 | **Late vs on-time review test** | Mann-Whitney U = 103,305,546, p < 1e-300, rank-biserial r = −0.64; mean 2.27 vs 4.29 (median 1 vs 5); diff −2.02★, 95% bootstrap CI [−2.06, −1.98] (2,000 resamples, seed 42); n = 6,381 late / 89,443 on time | `01_eda.ipynb` Insight 1 |
+| 2026-10-19 | Late × (1–2★) chi-square | χ² = 15,064, p < 1e-300, Cramér's V = 0.40 | `01_eda.ipynb` Insight 1 |
+| 2026-10-19 | Within-state check | late scores lower in 21 of 21 states with ≥30 late reviewed orders; gap 1.63–2.62★ | `01_eda.ipynb` Insight 2 |
+| 2026-10-19 | Delay vs score (Spearman) | ρ = −0.18 all delivered; ρ = −0.40 late orders only | `01_eda.ipynb` Insight 2 |
+| 2026-10-19 | Late rate by month | ~3% typical; 12.40% (2017-11), 14.13% (2018-02), 18.96% (2018-03); 2018-01 5.70% on 7,069 orders vs 2018-03 on 7,003; avg promised days 15.8 in 2018-08 | `eda_monthly_delivery` |
+| 2026-10-19 | Estimate buffer | median 12.4 days early (mean 11.8); 59.9% delivered in under half the promised time | `01_eda.ipynb` Insight 4 |
+| 2026-10-19 | Payment method vs approval | median approval boleto 29.06 h vs card 0.27 h; Kruskal-Wallis H = 32,338, ε² = 0.34; mean days after approval boleto 12.12 vs card 12.17 | `01_eda.ipynb` Insight 5 |
+| 2026-10-19 | Payment method vs late | χ² = 17.4, p = 0.000586, Cramér's V = 0.013 (negligible) | `01_eda.ipynb` Insight 5 |
+| 2026-10-19 | Written-comment rate | late 58.9% vs on time 39.3% | `01_eda.ipynb` bonus |
 
 ## Decisions log
 
@@ -108,6 +117,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | DQ check metadata (table/issue/decision/action) stored as comments beside each check SQL | Decision and measurement can't drift apart; a test fails if any check lacks metadata |
 | 2026-10-19 | `src/db.py` shared parser + read-only `connect()`; `run_queries.py` refactored to use it (q09 output unchanged) | One implementation, reused by scripts, notebooks and later the app |
 | 2026-10-19 | Reviews created before delivery kept (not flagged) | Genuine behaviour (5.19%); relevant to Module 2 'never_arrived'; reviews are never ML features |
+| 2026-10-19 | Rank-based tests (Mann-Whitney, Spearman, Kruskal-Wallis) + effect sizes + bootstrap CI | Review scores are ordinal and J-shaped; with ~95k rows p-values are always tiny, so effect sizes carry the conclusion |
+| 2026-10-19 | Ruff lints notebooks too; E402 ignored for `notebooks/*.ipynb` only | Notebooks must add the project root to sys.path before importing `src` |
+| 2026-10-19 | **Day 3 implication:** time-based split is essential | Late rate spikes (2017-11, 2018-02/03) and promised days drift in 2018 |
 | 2026-10-19 | Seller/category on-time: an order counts for every seller/category in it | Simple, stated; multi-seller orders are 1,275 of 96,470 delivered (1.32%) |
 | 2026-10-19 | Raw layer loaded with `all_varchar = true`; all type casting done in `sql/01_staging.sql` | Raw copy is exact; every cast is explicit and reviewable |
 | 2026-10-19 | Download via Kaggle public endpoint instead of the Kaggle API key | Reproducible for anyone, no credential to manage |

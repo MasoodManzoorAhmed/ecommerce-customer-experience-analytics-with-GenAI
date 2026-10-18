@@ -6,7 +6,7 @@ A living document: add a section at the end of every work day. **Every number he
 - 🟢 = asked in almost every interview · 🟡 = common follow-up · 🔴 = hard / senior-level probe
 - The bold first sentence of each answer is the 10-second version. The rest is there if they dig.
 
-**Contents:** 1. The pitch · 2. Dataset & business question · 3. Environment & reproducibility · 4. Loading the data · 5. Staging layer · 6. Star schema · 7. Business queries (SQL) · 8. Insights & recommendations · 9. Judgement & behavioural · 9b. Data-quality audit · 10. Coming next (questions to prepare later) · 11. Number cheat-sheet
+**Contents:** 1. The pitch · 2. Dataset & business question · 3. Environment & reproducibility · 4. Loading the data · 5. Staging layer · 6. Star schema · 7. Business queries (SQL) · 8. Insights & recommendations · 9. Judgement & behavioural · 9b. Data-quality audit · 9c. EDA & statistics · 10. Coming next (questions to prepare later) · 11. Number cheat-sheet
 
 ---
 
@@ -155,7 +155,7 @@ Flags include 775 orders with no items, 768 with no review, 249 where payment to
 
 ### 🟢 "What's your most important finding?"
 **Late delivery is strongly linked to bad reviews: late orders average 2.27 stars against 4.29 on time, and 62.4% of late orders get 1–2 stars against 9.3% of on-time ones.**
-The damage starts immediately. Just 1–3 days late drops the average to 3.29, and from 8 days late about 80% of reviews are 1–2 stars. (I'll add a statistical significance test in the EDA notebook.)
+The damage starts immediately. Just 1–3 days late drops the average to 3.29, and from 8 days late about 80% of reviews are 1–2 stars. Mann-Whitney U confirms it: p < 1e-300, rank-biserial r = −0.64 (large), mean gap −2.02★ with 95% CI [−2.06, −1.98].
 
 ### 🟢 "So what should the business do?"
 **Focus delivery improvements on geography and specific sellers, and warn customers in advance when a delay is likely.**
@@ -172,7 +172,7 @@ The damage starts immediately. Just 1–3 days late drops the average to 3.29, a
 - **Categories:** the top 7 of 74 categories make about half of revenue (49.9%).
 
 ### 🔴 "Correlation isn't causation. How do you know lateness *causes* bad reviews?"
-**So far it's a strong association, not a proven cause.** Supporting evidence so far: a clear dose–response pattern (the later the delivery, the lower the score: 3.29 at 1–3 days late, about 80% 1–2 stars from 8 days late). In the EDA I'll check whether it holds within each state and add a significance test and other confounder checks, for example whether late orders are concentrated in certain categories. Module 2 will also show whether low-score reviews actually *mention* delivery problems in their text.
+**So far it's a strong association, not a proven cause.** Supporting evidence so far: a clear dose–response pattern (the later the delivery, the lower the score: 3.29 at 1–3 days late, about 80% 1–2 stars from 8 days late). In the EDA I checked the obvious confounder: within every one of 21 states, late orders score 1.63–2.62★ lower, so geography doesn't explain it away. Category was ruled out as a major driver on Day 1 (on-time rates barely vary by category). Module 2 will also show whether low-score reviews actually *mention* delivery problems in their text.
 
 ---
 
@@ -219,14 +219,40 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 
 ---
 
+## 9c. EDA and statistics (Day 2)
+
+### 🟢 "Which statistical test did you use for late vs on-time reviews, and why?"
+**Mann-Whitney U, because review scores are ordinal (1–5 stars) and heavily skewed toward 5★, so a t-test's assumptions don't fit.** Mann-Whitney compares ranks: it asks whether a random late order tends to score lower than a random on-time order. Result: p < 1e-300, rank-biserial r = −0.64, which is a large effect.
+
+### 🟢 "What's a p-value? Why also report an effect size?"
+**The p-value is the probability of seeing a difference at least this large if there were really no difference. The effect size says how big the difference is.** With 95,824 reviewed orders, almost any difference is "significant". My payment-method example shows why: method vs lateness gives p = 0.0006, but Cramér's V is only 0.013, which is negligible. Significant doesn't mean important, so I lead with effect sizes.
+
+### 🟡 "What's a confidence interval, and how did you get yours?"
+**A range that would contain the true value in 95% of repeated samples. I used a bootstrap:** resample both groups with replacement 2,000 times (seed 42), recompute the mean difference each time, and take the 2.5th and 97.5th percentiles. Result: −2.02 stars, 95% CI [−2.06, −1.98]. The bootstrap doesn't assume a normal distribution, which suits skewed star ratings.
+
+### 🔴 "Couldn't geography explain the gap? Remote states are late more often."
+**I checked by comparing late and on-time orders within each state.** In all 21 states with at least 30 late reviewed orders, late orders score lower, by 1.63 to 2.62 stars. That's controlling for a confounder by stratifying. It's still observational, not causal. Module 2 adds independent evidence by checking whether low-score review text actually mentions delivery.
+
+### 🟡 "Does it matter *how* late?"
+**Yes, up to a point.** Among late orders, Spearman ρ = −0.40 between days late and score. The curve is flat while orders are early, drops sharply right after the promised date, then levels off near 1.5★. Customers react most to the promise being broken.
+
+### 🟡 "What did you learn that changes how you'll build the model?"
+**The late rate isn't stable over time.** It's about 3% in typical months but 12.40% in Nov 2017 and 18.96% in Mar 2018, while promised delivery times shrink through 2018. A random train/test split would mix those periods and give an over-optimistic score. A time-based split shows how the model would really perform on future orders. Also: estimates are padded (median 12.4 days early, 59.9% of orders arrive in under half the promised time), so `promised_days` will be a key feature, and its meaning changes over time.
+
+### 🟡 "What did you find about payment methods?"
+**Boleto orders wait a median 29.06 hours for payment approval, against 0.27 hours for cards** (Kruskal-Wallis ε² = 0.34, large). Once approved, they ship just as fast: mean 12.12 vs 12.17 days from approval to delivery. So the extra time is checkout friction, not logistics. And method barely predicts lateness (Cramér's V = 0.013). Approval time is only known after purchase, so it's not a model feature; payment method is.
+
+### 🟡 "Why a dumbbell chart for the state comparison?"
+**It shows two values per state and the gap between them in one row, so the eye compares 21 gaps at once.** I sorted by gap size and used one colour per group, with a legend, so the meaning doesn't depend on colour alone.
+
+---
+
 ## 10. Coming next: questions to prepare later
 
 Fill these in as each part is built, using real results only.
 
 **Day 2: Data-quality audit and EDA**
-- *(Audit questions answered in section 9b.)*
-- Which statistical test did you use for late vs on-time reviews, and why? (e.g. Mann-Whitney U, because review scores are ordinal and not normally distributed)
-- What's a p-value? What's an effect size, and why report both?
+- *(Answered in sections 9b and 9c.)*
 
 **Day 3: Machine learning**
 - What is data leakage? Give an example from your project.
@@ -283,3 +309,8 @@ Fill these in as each part is built, using real results only.
 | Clean orders | 97,467 of 99,441 (98.01%) | audit notebook |
 | Late rate, flagged orders excluded | 6.67% (vs 6.77% all) | audit notebook |
 | Reviews written before delivery | 4,977 (5.19%) | audit |
+| Late vs on-time test | Mann-Whitney p < 1e-300, r = −0.64; gap −2.02★ [−2.06, −1.98] | `01_eda.ipynb` |
+| Within-state check | late lower in 21/21 states, by 1.63–2.62★ | `01_eda.ipynb` |
+| Late-rate spikes | 12.40% (Nov 2017), 18.96% (Mar 2018) vs ~3% typical | `01_eda.ipynb` |
+| Estimate buffer | median 12.4 days early; 59.9% in < half the promised time | `01_eda.ipynb` |
+| Boleto approval / days after approval | 29.06 h median; 12.12 vs card 12.17 days | `01_eda.ipynb` |

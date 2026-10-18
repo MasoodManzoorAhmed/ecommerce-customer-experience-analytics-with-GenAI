@@ -7,3 +7,7 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# notebooks add the project root to sys.path before importing from src/
+"notebooks/*.ipynb" = ["E402"]
