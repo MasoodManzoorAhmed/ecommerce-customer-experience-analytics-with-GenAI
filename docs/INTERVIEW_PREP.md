@@ -6,7 +6,7 @@ A living document: add a section at the end of every work day. **Every number he
 - 🟢 = asked in almost every interview · 🟡 = common follow-up · 🔴 = hard / senior-level probe
 - The bold first sentence of each answer is the 10-second version. The rest is there if they dig.
 
-**Contents:** 1. The pitch · 2. Dataset & business question · 3. Environment & reproducibility · 4. Loading the data · 5. Staging layer · 6. Star schema · 7. Business queries (SQL) · 8. Insights & recommendations · 9. Judgement & behavioural · 10. Coming next (questions to prepare later) · 11. Number cheat-sheet
+**Contents:** 1. The pitch · 2. Dataset & business question · 3. Environment & reproducibility · 4. Loading the data · 5. Staging layer · 6. Star schema · 7. Business queries (SQL) · 8. Insights & recommendations · 9. Judgement & behavioural · 9b. Data-quality audit · 10. Coming next (questions to prepare later) · 11. Number cheat-sheet
 
 ---
 
@@ -192,12 +192,39 @@ The damage starts immediately. Just 1–3 days late drops the average to 3.29, a
 
 ---
 
+## 9b. Data-quality audit (Day 2)
+
+### 🟢 "Walk me through your data-quality audit."
+**I wrote 45 checks across all 9 tables. Each records the issue's size (count and %), a decision (fix, flag, keep or out of scope) and the action taken.**
+The checks are SQL in `sql/04_data_quality_checks.sql`, with the decision written as metadata next to each query, so the measurement and the decision live together. A Python function runs them all and builds the audit table, and a unit test fails if any check is missing its decision. The result: 12 fixed, 17 flagged, 15 kept, 1 out of scope.
+
+### 🟢 "What was the most important issue you found?"
+**Identity. `customer_id` is created per order, so 99,441 ids represent only 96,096 real people.** Counting by `customer_id` makes everyone look like a one-time buyer and the repeat-customer rate meaningless. Close behind: duplicate reviews per order (547 orders) and a non-unique `review_id` (1,603 rows), which would double-count reviews.
+
+### 🟡 "How did you decide whether to fix, flag or drop?"
+**My rule: fix it if the correction is unambiguous, flag it if it's a genuine anomaly I can't correct, keep it if it's real behaviour, and never silently drop.**
+Examples: a typo in a column name → fix. A carrier pickup before purchase (166 orders) → flag, because I can't know the true time. Free shipping (383 items) → keep, it's a genuine offer. I didn't drop a single order: 97,467 of 99,441 (98.01%) are clean, and the rest carry labels in `dq_flags`.
+
+### 🔴 "How do you know your cleaning decisions didn't bias the results?"
+**I ran a sensitivity check: the late rate is 6.77% across all 96,470 delivered orders and 6.67% across the 95,392 with no flags.** The headline metric barely moves, so keeping flagged orders doesn't distort it. I'll repeat this check for the model.
+
+### 🟡 "Missing values: how did you handle them?"
+**First I asked *why* they're missing.** Missing delivery dates line up with order status: shipped, cancelled and unavailable orders haven't been delivered, so that's expected. Only 8 "delivered" orders lack a date, and those are flagged. The 610 products with no category are the same 610 rows missing three other descriptive fields, so it's one cause, not four. I don't impute in SQL. LightGBM handles missing values natively, and any imputation for logistic regression will be fitted on training data only to avoid leakage.
+
+### 🟡 "Anything surprising?"
+**4,977 reviews (5.19%) were written before the parcel was delivered, and 71 before the purchase date.** Customers can review a parcel that hasn't arrived, which matters for the "never arrived" complaint theme in Module 2. It's also a good illustration of why review data must never be a model feature: in some cases it exists before the outcome we're predicting.
+
+### 🟡 "What did you do about the geolocation table?"
+**1,000,163 rows for 19,015 zip prefixes, 26.18% of them exact duplicates (261,831 rows), and 47 points outside Brazil.** I removed out-of-country points, then averaged to one row per zip. Without that, joining customers to locations would multiply rows. The side effect is documented: 269 customers and 7 sellers end up with no coordinates.
+
+---
+
 ## 10. Coming next: questions to prepare later
 
 Fill these in as each part is built, using real results only.
 
 **Day 2: Data-quality audit and EDA**
-- Walk me through your data-quality audit. What was the biggest issue?
+- *(Audit questions answered in section 9b.)*
 - Which statistical test did you use for late vs on-time reviews, and why? (e.g. Mann-Whitney U, because review scores are ordinal and not normally distributed)
 - What's a p-value? What's an effect size, and why report both?
 
@@ -252,3 +279,7 @@ Fill these in as each part is built, using real results only.
 | SP share of revenue | 38.3% | `q02` |
 | Item revenue (all statuses, excl. freight) | R$13,591,643.70 | reconciliation |
 | Reviews with comment text | 40,748 of 98,673 | `stg_reviews` |
+| Data-quality checks | 45 (FIX 12 · FLAG 17 · KEEP 15 · SCOPE 1) | `data_quality_audit.csv` |
+| Clean orders | 97,467 of 99,441 (98.01%) | audit notebook |
+| Late rate, flagged orders excluded | 6.67% (vs 6.77% all) | audit notebook |
+| Reviews written before delivery | 4,977 (5.19%) | audit |

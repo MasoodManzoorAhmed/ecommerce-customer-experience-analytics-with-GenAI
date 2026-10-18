@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 1 complete; next: Day 2 data-quality audit (`notebooks/00_data_quality_audit.ipynb`)
+## Status: Day 2 in progress: audit done; next: `notebooks/01_eda.ipynb` (5 insights + statistical test)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -20,7 +20,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] `sql/03_business_queries.sql` (12 queries + one-line insights), run by `scripts/run_queries.py`; results in `sql/results/*.csv`
 
 ### Day 2: Data-quality audit + EDA
-- [ ] `notebooks/00_data_quality_audit.ipynb` + `docs/DATA_QUALITY_REPORT.md` (each issue: size, fix, reason)
+- [x] `notebooks/00_data_quality_audit.ipynb` + `docs/DATA_QUALITY_REPORT.md`: 45 checks in `sql/04_data_quality_checks.sql` (decision + action stored beside each check), run by `src/data_quality.py`; tests in `tests/test_db.py` (4 pass)
 - [ ] `notebooks/01_eda.ipynb` + 5 insights (with numbers), incl. payment method vs approval/delivery time
 
 ### Day 3: ML
@@ -79,6 +79,14 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Q10 repeat customers | 3.0% (2,801 of 93,350) with ≥2 delivered orders; 5.51% of revenue | `q10_repeat_customers.csv` |
 | 2026-10-19 | Q11 cohort repeat by month +6 | 2.23%–4.18% (mean 3.03%), cohorts 2017-01..2018-02 | `q11_cohort_retention.csv` |
 | 2026-10-19 | Q12 payment method | card 75.5% of orders, AOV R$143.24; boleto median approval 29.06 h vs card 0.27 h; late % boleto 7.32 vs card 6.69 | `q12_payment_method.csv` |
+| 2026-10-19 | DQ audit decisions | 45 checks: FIX 12 · FLAG 17 · KEEP 15 · SCOPE 1 | `sql/results/data_quality_audit.csv` |
+| 2026-10-19 | Clean orders (no dq_flags) | 97,467 of 99,441 (98.01%) | audit notebook §5 |
+| 2026-10-19 | Late rate sensitivity | 6.77% all delivered (96,470) vs 6.67% delivered with no flags (95,392) | audit notebook §5 |
+| 2026-10-19 | Reviews created before delivery / before purchase | 4,977 (5.19%) / 71 | `reviews_created_before_delivery`, `reviews_created_before_purchase` |
+| 2026-10-19 | review_id shared across orders | 1,603 rows (789 review_ids) | audit + ad-hoc check |
+| 2026-10-19 | Geolocation exact duplicate rows | 261,831 of 1,000,163 (26.18%) | `geo_exact_duplicate_rows` |
+| 2026-10-19 | Orders without items: canceled / unavailable | 164 / 603 (767 of 775) | ad-hoc check |
+| 2026-10-19 | Delivered orders missing approval timestamp | 14 | audit notebook §2 |
 
 ## Decisions log
 
@@ -97,6 +105,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Integer surrogate keys via ROW_NUMBER over natural id | Deterministic across rebuilds; compact Power BI relationships |
 | 2026-10-19 | Q01 trend limited to 2017-01..2018-08 | 2016 has only 267 delivered orders (Nov missing); late-2018 months truncated, so MoM % is meaningless there |
 | 2026-10-19 | Query results saved as CSV in `sql/results/` and committed | Every README number traceable to a file produced by code |
+| 2026-10-19 | DQ check metadata (table/issue/decision/action) stored as comments beside each check SQL | Decision and measurement can't drift apart; a test fails if any check lacks metadata |
+| 2026-10-19 | `src/db.py` shared parser + read-only `connect()`; `run_queries.py` refactored to use it (q09 output unchanged) | One implementation, reused by scripts, notebooks and later the app |
+| 2026-10-19 | Reviews created before delivery kept (not flagged) | Genuine behaviour (5.19%); relevant to Module 2 'never_arrived'; reviews are never ML features |
 | 2026-10-19 | Seller/category on-time: an order counts for every seller/category in it | Simple, stated; multi-seller orders are 1,275 of 96,470 delivered (1.32%) |
 | 2026-10-19 | Raw layer loaded with `all_varchar = true`; all type casting done in `sql/01_staging.sql` | Raw copy is exact; every cast is explicit and reviewable |
 | 2026-10-19 | Download via Kaggle public endpoint instead of the Kaggle API key | Reproducible for anyone, no credential to manage |

@@ -10,36 +10,27 @@ The database is opened read-only, so analysis can never modify the data.
 
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 
-import duckdb
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-DB_PATH = ROOT / "data" / "olist.duckdb"
-SQL_FILE = ROOT / "sql" / "03_business_queries.sql"
+sys.path.insert(0, str(ROOT))  # make the src package importable when run as a script
+
+from src.db import connect, load_named_sql  # noqa: E402
+
 OUT_DIR = ROOT / "sql" / "results"
-
-NAME_MARKER = re.compile(r"^-- name:\s*(\S+)\s*$", re.MULTILINE)
-
-
-def parse_queries(sql_text: str) -> dict[str, str]:
-    """Split the SQL file into {query_name: sql} using the name markers."""
-    parts = NAME_MARKER.split(sql_text)
-    # parts = [header, name1, body1, name2, body2, ...]
-    return {name: body.strip() for name, body in zip(parts[1::2], parts[2::2], strict=True)}
 
 
 def main(prefixes: list[str]) -> int:
-    queries = parse_queries(SQL_FILE.read_text(encoding="utf-8"))
+    queries = {q.name: q.sql for q in load_named_sql("03_business_queries.sql")}
     if prefixes:
         queries = {n: q for n, q in queries.items() if n.startswith(tuple(prefixes))}
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     pd.set_option("display.width", 200)
     pd.set_option("display.max_columns", 20)
-    with duckdb.connect(str(DB_PATH), read_only=True) as con:
+    with connect(read_only=True) as con:
         for name, sql in queries.items():
             df = con.execute(sql).df()
             df.to_csv(OUT_DIR / f"{name}.csv", index=False)
