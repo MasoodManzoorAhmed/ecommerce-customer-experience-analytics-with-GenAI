@@ -2,7 +2,7 @@
 
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 
-## Status: Day 1 in progress: staging done; next: `sql/02_star_schema.sql`
+## Status: Day 1 in progress: staging + star schema done; next: `sql/03_business_queries.sql`
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -15,7 +15,7 @@ Update this file at the end of every work session: tick tasks, record real numbe
 ### Day 1: SQL
 - [x] `scripts/build_db.py` loads 9 CSVs into `data/olist.duckdb` (raw schema, all columns as text; row counts cross-checked with pandas)
 - [x] `sql/01_staging.sql` (8 views, all keys verified unique)
-- [ ] `sql/02_star_schema.sql`
+- [x] `sql/02_star_schema.sql` (6 tables; totals reconcile with staging; no orphan keys)
 - [ ] `sql/03_business_queries.sql` (10–12 queries + one-line insights)
 
 ### Day 2: Data-quality audit + EDA
@@ -60,6 +60,12 @@ Update this file at the end of every work session: tick tasks, record real numbe
 | 2026-10-19 | Reviews with comment text | 40,748 of 98,673 (after trim/blank→NULL) | `stg_reviews` |
 | 2026-10-19 | Orders with no review | 768 | `stg_orders` vs `stg_reviews` |
 | 2026-10-19 | Zip prefixes not in geolocation | customers 278 · sellers 7 (raw); +5 prefixes removed by bbox filter | ad-hoc DuckDB check |
+| 2026-10-19 | Star schema row counts | fact_orders 99,441 · fact_order_items 112,650 · dim_customer 96,096 · dim_seller 3,095 · dim_product 32,951 · dim_date 852 (2016-09-01 → 2018-12-31) | `sql/02_star_schema.sql` + verification query |
+| 2026-10-19 | Item revenue reconciliation | R$13,591,643.70 identical in stg_order_items, fact_order_items, fact_orders (all statuses, excl. freight) | verification query |
+| 2026-10-19 | **Late-delivery rate** | **6.77%** (6,534 late of 96,470 delivered; date-based) | `fact_orders.is_late` |
+| 2026-10-19 | Late count if compared on timestamps instead | 7,826 (1,292 same-day deliveries would be miscounted) | ad-hoc DuckDB check |
+| 2026-10-19 | Main payment method (orders) | credit_card 74,975 · boleto 19,784 · voucher 3,151 · debit_card 1,527 · not_defined 3 · none 1 | `fact_orders.payment_type_main` |
+| 2026-10-19 | dq_flags | no_items 775 · no_review 768 · payment_total_mismatch 249 · carrier_before_purchase 166 · customer_before_carrier 23 · delivered_without_date 8 · date_without_delivered_status 6 · no_payment 1; clean orders 97,467 | `fact_orders.dq_flags` |
 
 ## Decisions log
 
@@ -70,7 +76,12 @@ Update this file at the end of every work session: tick tasks, record real numbe
 | 2026-10-19 | `payment_installments` not selected in `stg_payments` | Project rule 4 (payment method only) |
 | 2026-10-19 | Added 2 missing category translations by hand; NULL category → 'unknown' | Translation file lacks `pc_gamer` and `portateis_cozinha_e_preparadores_de_alimentos` |
 | 2026-10-19 | Geolocation: drop points outside Brazil bbox (lat −34..5.3, lng −74..−34.8) before averaging per zip | 47 bad points; avoids zip centres pulled abroad |
-| 2026-10-19 | Estimated delivery kept as DATE (source is always 00:00:00) | **Open question for star schema:** compare `is_late` on dates, so a delivery on the promised day is on time |
+| 2026-10-19 | Estimated delivery kept as DATE (source is always 00:00:00) | Enables the date-based `is_late` below |
+| 2026-10-19 | `is_late` = delivered **date** > estimated date (delivered = status 'delivered' AND delivery date present) | Estimate has no time of day; timestamp comparison would wrongly mark 1,292 same-day deliveries late (7,826 vs 6,534) |
+| 2026-10-19 | `fact_orders` keeps all 99,441 orders; items/payments/reviews LEFT JOINed; issues go to `dq_flags` | Don't silently drop 775 item-less orders etc.; each analysis filters explicitly |
+| 2026-10-19 | `payment_type_main` = method with largest amount; ties (188 orders) → earliest payment_sequential | Deterministic; payment method only (rule 4) |
+| 2026-10-19 | `dim_customer` at customer_unique_id grain; address from most recent order | 96,096 people vs 99,441 order-level customer_ids; 39 people span >1 state |
+| 2026-10-19 | Integer surrogate keys via ROW_NUMBER over natural id | Deterministic across rebuilds; compact Power BI relationships |
 | 2026-10-19 | Raw layer loaded with `all_varchar = true`; all type casting done in `sql/01_staging.sql` | Raw copy is exact; every cast is explicit and reviewable |
 | 2026-10-19 | Download via Kaggle public endpoint instead of the Kaggle API key | Reproducible for anyone, no credential to manage |
 | 2026-10-19 | Ruff line-length 100, rules E/F/I/UP/B (`pyproject.toml`); `.gitattributes` forces LF | One lint config for local + CI; consistent line endings for Linux deployment |
