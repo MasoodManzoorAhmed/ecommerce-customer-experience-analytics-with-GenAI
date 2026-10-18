@@ -1,0 +1,10 @@
+# Module 2 (LoRA fine-tuning) on Google Colab / Kaggle GPU. Not needed locally.
+# In Colab:  !pip install -r requirements-finetune.txt
+transformers>=4.44
+peft>=0.12
+datasets>=2.20
+accelerate>=0.33
+bitsandbytes>=0.43        # only if using QLoRA (4-bit)
+evaluate>=0.4
+scikit-learn>=1.5
+pandas>=2.2

@@ -1,0 +1,36 @@
+# Secrets: never commit
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Data (download via scripts/download_data.py)
+data/raw/
+data/*.duckdb
+data/*.duckdb.wal
+data/**/*.parquet
+kaggle.json
+# NOTE: small app extracts in app/data/*.parquet ARE committed (needed for Streamlit Cloud)
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+
+# Large model artefacts. The small LightGBM model in models/ IS committed (the app needs it).
+genai/review_themes/adapters/
+*.safetensors
+*.bin
+
+# Power BI / Office temp files
+~$*
+*.pbix.bak
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/

@@ -1,0 +1,39 @@
+# Python 3.12. Install:  pip install -r requirements.txt
+# After everything works, pin exact versions with:  pip freeze > requirements.lock.txt
+
+# Data & SQL
+pandas>=2.2
+numpy>=1.26
+pyarrow>=15
+duckdb>=1.1
+
+# Statistics & visualisation
+scipy>=1.12
+matplotlib>=3.8
+seaborn>=0.13
+plotly>=5.20
+
+# Machine learning
+scikit-learn>=1.5
+lightgbm>=4.3
+shap>=0.45
+
+# GenAI (Module 1 + labelling for Module 2)
+openai>=1.40               # OpenAI-compatible client (OpenRouter)
+sqlglot>=25                # SQL parsing for guardrails
+sentence-transformers>=3.0 # embeddings for few-shot retrieval
+pyyaml>=6.0
+python-dotenv>=1.0
+
+# App & Excel
+streamlit>=1.38
+openpyxl>=3.1
+
+# Notebooks & quality
+jupyter>=1.0
+ipykernel>=6.29
+pytest>=8.0
+ruff>=0.6
+
+# Data download
+kaggle>=1.6
