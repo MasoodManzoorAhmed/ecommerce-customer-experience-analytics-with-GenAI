@@ -6,7 +6,7 @@ A living document: add a section at the end of every work day. **Every number he
 - 🟢 = asked in almost every interview · 🟡 = common follow-up · 🔴 = hard / senior-level probe
 - The bold first sentence of each answer is the 10-second version. The rest is there if they dig.
 
-**Contents:** 1. The pitch · 2. Dataset & business question · 3. Environment & reproducibility · 4. Loading the data · 5. Staging layer · 6. Star schema · 7. Business queries (SQL) · 8. Insights & recommendations · 9. Judgement & behavioural · 9b. Data-quality audit · 9c. EDA & statistics · 10. Coming next (questions to prepare later) · 11. Number cheat-sheet
+**Contents:** 1. The pitch · 2. Dataset & business question · 3. Environment & reproducibility · 4. Loading the data · 5. Staging layer · 6. Star schema · 7. Business queries (SQL) · 8. Insights & recommendations · 9. Judgement & behavioural · 9b. Data-quality audit · 9c. EDA & statistics · 9d. ML model · 10. Coming next (questions to prepare later) · 11. Number cheat-sheet
 
 ---
 
@@ -14,7 +14,7 @@ A living document: add a section at the end of every work day. **Every number he
 
 ### 🟢 "Tell me about your project."
 **I built an end-to-end analytics project on about 100,000 real orders from Olist, a Brazilian e-commerce marketplace, to answer one question: why do customers leave bad reviews, and can we predict and prevent late deliveries?**
-I loaded 9 raw tables into DuckDB, built a cleaned staging layer and a star schema, and wrote 12 business analyses in SQL. The headline finding is that late orders average 2.27 stars against 4.29 for on-time orders, and only 3.0% of customers ever order again, so a late first delivery often loses that customer for good. Next I'm building a late-delivery prediction model, a Power BI dashboard, and two GenAI modules: a text-to-SQL assistant that I measure on an evaluation set, and a review-complaint classifier fine-tuned with LoRA.
+I loaded 9 raw tables into DuckDB, built a cleaned staging layer and a star schema, and wrote 12 business analyses in SQL. The headline finding is that late orders average 2.27 stars against 4.29 for on-time orders, and only 3.0% of customers ever order again, so a late first delivery often loses that customer for good. I built a leakage-free late-delivery model where, under heavy drift, logistic regression beat LightGBM (test PR-AUC 0.094 vs 0.073, about 2× better than random). Next come a Power BI dashboard and two GenAI modules: a text-to-SQL assistant that I measure on an evaluation set, and a review-complaint classifier fine-tuned with LoRA.
 
 ### 🟡 "Why this project and not a Kaggle competition?"
 **Competitions give you a clean table and a metric. Real analyst work starts with messy, related tables and a business question.**
@@ -161,7 +161,7 @@ The damage starts immediately. Just 1–3 days late drops the average to 3.29, a
 **Focus delivery improvements on geography and specific sellers, and warn customers in advance when a delay is likely.**
 - On-time rates vary from 82.64% (Maranhão, MA) to 95.96% (Paraná, PR). Rio de Janeiro is the big-volume weak spot at 87.89% on 12,351 orders. Category barely matters: the worst categories are all between 91.9% and 92.7%.
 - Seller problems exist even in the best-served state: 8 of the 10 worst sellers are in São Paulo.
-- Only 3.0% of customers ever order twice, so the first delivery decides the relationship. That's why a purchase-time late-delivery model is worth building.
+- Only 3.0% of customers ever order twice, so the first delivery decides the relationship. That's why I built a purchase-time late-delivery model; its top-1% riskiest orders are late 3.2× more often than average.
 
 ### 🟡 "Anything about payment methods?"
 **Boleto orders take a median 29.06 hours to approve, against 0.27 hours for credit cards, and they're late more often (7.32% vs 6.69%).** Payment method is known at purchase time, so it's a valid feature for the late-delivery model. The approval time itself is only known afterwards, so I won't use it as a feature.
@@ -247,6 +247,56 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 
 ---
 
+## 9d. Machine learning: late-delivery model (Day 3)
+
+### 🟢 "Walk me through your model."
+**I predict, at the moment of purchase, whether an order will arrive after its estimated date.** 23 features, all known at checkout: the promised delivery time, distance and states, basket size and weight, payment method, the seller's recent track record, and platform-wide context. Time-based split: train on 2017, tune on Jan–Mar 2018, test once on Apr–Aug 2018. I compared logistic regression with LightGBM. **Logistic regression won** (test PR-AUC 0.094 vs 0.073, against a 0.044 base rate), so it's the production model. I explain every prediction with SHAP.
+
+### 🟢 "How many features does your dataset have?"
+**Two answers: the raw data has 9 tables with 52 columns; my model uses 23 engineered features (19 numeric, 4 categorical), all known at purchase time.**
+Many raw columns are IDs for joining or describe the outcome (delivery dates, review scores), so they can't be features. The 23 fall into seven groups: promise and timing (promised_days, weekday, hour, holiday flag), geography (distance, same state, customer and seller state), basket (value, freight, freight ratio, items, sellers), product (weight, volume, category), checkout (payment method), seller history (90-day orders, deliveries, late rate, all-time late rate), and platform context (30-day late rate, volume ratio). The target, `is_late`, is the label, not a feature.
+
+### 🟢 "What is data leakage? Give an example from your project."
+**Leakage is using information during training that wouldn't exist at prediction time. It makes test scores look great and the real model useless.** The obvious cases: delivery dates, delay days and review scores describe the outcome, so they're on a forbidden list, and a unit test fails if any of them appears in the features. The subtle case was seller history. "The seller's late rate from earlier orders" sounds safe, but an earlier order may still be *in transit* when the new one is placed, so its outcome isn't known yet. I count only orders **delivered before the purchase**, and a test with synthetic data proves an in-transit order is excluded.
+
+### 🟢 "Why a time-based split instead of a random split?"
+**Because the model will always predict the future from the past, and this data drifts a lot.** The late rate is 5.65% in 2017, 12.88% in Jan–Mar 2018 and 4.42% in Apr–Aug 2018. A random split would mix these periods, so the model would effectively see the future and the score would be over-optimistic. The time split shows how it would really perform.
+
+### 🟢 "Why PR-AUC instead of accuracy or ROC-AUC?"
+**With only 4–13% late orders, accuracy is meaningless: always predicting "on time" is 87–96% accurate.** ROC-AUC is flattering under imbalance because it rewards correctly ranking the many easy negatives. PR-AUC measures how well the *late* orders are ranked at the top, and a random model scores the base rate. So my 0.094 on test means 2.13× better than random, which is the honest way to state it.
+
+### 🔴 "LightGBM is usually better on tabular data. Why did logistic regression win?"
+**Drift.** LightGBM's early stopping halted after 1 to 14 trees in every configuration: what it learned from 2017 stopped helping on 2018 almost immediately. Trees also can't extrapolate. The validation period's platform late rate was far above anything in training, and a tree treats every value beyond its largest split the same. A linear model extends the trend. I tried 24 LightGBM configurations with stronger regularisation, all selected on validation, and the result held: 0.213 vs 0.284. The project rule is to report whichever wins, so the simpler model is in production.
+
+### 🔴 "What did you do when the first model performed badly?"
+**I diagnosed it instead of tuning harder.** Early stopping after a few trees pointed to a train/test mismatch, and the features showed why: all-time seller order counts keep growing as the platform ages, so 2018 values were outside the training range. I replaced them with rolling 90-day counts and added platform context features, all chosen on validation. I'm also transparent that an earlier feature set was scored on test once before I diagnosed the drift; that's written in the notebook.
+
+### 🟡 "Any surprising result while building features?"
+**Removing a feature that's all zeros in validation and test made the model much worse.** `is_nov_dec` (holiday season) never occurs in 2018 Jan–Aug, yet dropping it cut validation PR-AUC from 0.267 to 0.188. In training it absorbs the Black Friday spike. Without it, the model blames that spike on other features and their weights get distorted. It works as a control variable.
+
+### 🟢 "How did you choose the threshold?"
+**From business costs, on the validation set.** I assumed a missed late order costs 5 units (likely a 1–2★ review: 62.4% of late orders get one) and an unnecessary flag costs 1 unit (a proactive message), then picked the threshold minimising 5·FN + 1·FP: 0.045. Because 5:1 is an assumption, I also report 3:1 and 10:1.
+
+### 🔴 "Did the threshold work on the test set?"
+**No, and I report that.** On validation it cost 0.745× of doing nothing. On test, where the late rate fell from 12.88% to 4.42%, the same threshold flagged 27.3% of orders at 9.4% precision and cost 1.54× *more* than flagging nothing. At 5:1, a flag only pays off above about 17% precision, and even the riskiest 1% of test orders reach only 14.0%. The ranking still works (2.1–3.2× lift), but **a fixed threshold doesn't survive a three-fold change in the base rate.** In production I'd re-set it monthly on the latest labelled month, or use the model as a top-k priority list for cheap actions.
+
+### 🟢 "What drives late-delivery risk according to your model?"
+**From SHAP:** promised delivery days (a longer estimate means less risk, because padded promises are easier to keep), seller-to-customer distance (farther means more risk), customer state, same-state shipping (less risk), and recent platform and seller history. Seller orders vs seller deliveries in the last 90 days point in opposite directions, so together they act like a backlog signal.
+
+### 🟡 "What is SHAP, and how did you compute it?"
+**SHAP splits a single prediction into contributions from each feature, so they add up to the prediction.** For a linear model it's exact: contribution = coefficient × (feature value − training average), in log-odds. I implemented that, cross-checked it against the `shap` library (identical, max difference 0.00), and checked that the contributions plus the baseline reproduce the model's output (error 2.66e-15). One-hot columns are summed back so each original feature gets one number.
+
+### 🟡 "Is a PR-AUC of 0.094 good?"
+**It's modest, and I'd say so.** It's 2.13× random. The model's top 1% of orders are late 14.0% of the time against 4.42% overall. Purchase-time data simply can't see most causes of lateness (carrier problems, weather, strikes), which happen after checkout. A useful next step would be a second model at dispatch time, with carrier and pickup information.
+
+### 🟡 "Are the predicted probabilities meaningful?"
+**Roughly, on test:** the average predicted risk is 3.78% against an actual 4.42%. I deliberately didn't use class weighting in the final model: it scored better on validation (0.284 vs 0.267) and keeps probabilities on the real scale. On validation the model predicted 3.42% against an actual 12.88%; it can't anticipate a regime it has never seen. That's why monitoring matters.
+
+### 🟡 "How is the model used downstream?"
+**Every order is scored into `fact_order_risk`: probability, risk band (high/medium/low relative to the threshold), model version, top-3 SHAP drivers and a split column.** Dashboards should filter to `split = 'test'` for honest numbers, because training-period scores are in-sample. The scores are saved to Parquet and reloaded on every database rebuild, and the model plus its metadata (features, threshold, metrics, dates) are saved in `models/`.
+
+---
+
 ## 10. Coming next: questions to prepare later
 
 Fill these in as each part is built, using real results only.
@@ -255,13 +305,7 @@ Fill these in as each part is built, using real results only.
 - *(Answered in sections 9b and 9c.)*
 
 **Day 3: Machine learning**
-- What is data leakage? Give an example from your project.
-- Why a time-based split instead of a random split?
-- How did you compute seller history without leakage?
-- Why PR-AUC instead of accuracy or ROC-AUC with a 6.77% positive rate?
-- How did you choose the classification threshold? What costs did you assume?
-- What does SHAP show, and what were the top features?
-- Did LightGBM actually beat logistic regression? By how much?
+- *(Answered in section 9d.)*
 
 **Day 4–5: Power BI and Excel**
 - Explain a DAX measure you wrote. What's the difference between a calculated column and a measure?
@@ -314,3 +358,9 @@ Fill these in as each part is built, using real results only.
 | Late-rate spikes | 12.40% (Nov 2017), 18.96% (Mar 2018) vs ~3% typical | `01_eda.ipynb` |
 | Estimate buffer | median 12.4 days early; 59.9% in < half the promised time | `01_eda.ipynb` |
 | Boleto approval / days after approval | 29.06 h median; 12.12 vs card 12.17 days | `01_eda.ipynb` |
+| Split late rates | train 5.65% · valid 12.88% · test 4.42% | `02_late_delivery_model.ipynb` |
+| Valid PR-AUC: logistic vs LightGBM | 0.284 vs 0.213 | notebook 02 |
+| Test PR-AUC: logistic vs LightGBM | 0.094 vs 0.073 (base rate 0.044; lift 2.13×) | notebook 02 |
+| Top-1% / top-5% test precision | 14.0% / 10.6% | notebook 02 |
+| Threshold (5:1) on test | precision 9.4%, recall 57.8%, cost 1.54× flag-nothing | notebook 02 |
+| Top SHAP drivers | promised_days, distance_km, customer_state, same_state | notebook 02 |

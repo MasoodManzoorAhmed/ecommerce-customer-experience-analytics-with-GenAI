@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw"
 DB_PATH = ROOT / "data" / "olist.duckdb"
 SQL_DIR = ROOT / "sql"
+RISK_SCORES = ROOT / "models" / "order_risk_scores.parquet"
 
 # CSV file -> table name in the raw schema
 RAW_TABLES = {
@@ -66,6 +67,19 @@ def run_sql_files(con: duckdb.DuckDBPyConnection) -> None:
         print(f"  ran {name}")
 
 
+def load_model_outputs(con: duckdb.DuckDBPyConnection) -> None:
+    """Reload saved model scores (written by notebooks/02) so a rebuild doesn't lose them."""
+    if RISK_SCORES.exists():
+        con.execute(
+            "CREATE TABLE fact_order_risk AS SELECT * FROM read_parquet(?)",
+            [RISK_SCORES.as_posix()],
+        )
+        n = con.execute("SELECT COUNT(*) FROM fact_order_risk").fetchone()[0]
+        print(f"  loaded fact_order_risk ({n:,} rows) from {RISK_SCORES.name}")
+    else:
+        print("  (no model scores yet: run notebooks/02_late_delivery_model.ipynb)")
+
+
 def main() -> int:
     DB_PATH.unlink(missing_ok=True)
     with duckdb.connect(str(DB_PATH)) as con:
@@ -74,6 +88,8 @@ def main() -> int:
             print(f"  raw.{table:22s} {n:>9,} rows")
         print("Running SQL build files")
         run_sql_files(con)
+        print("Loading model outputs")
+        load_model_outputs(con)
     return 0
 
 

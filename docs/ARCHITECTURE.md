@@ -92,15 +92,16 @@ Definitions (also in `genai/semantic_layer.yaml`, so SQL, Power BI and the LLM u
 | price, freight_value, freight/price ratio, n_items, n_sellers | review_score, review text |
 | **payment method** (e.g. boleto must be confirmed before approval, which can delay dispatch) | approval_hours (only known after approval; use it in EDA, not as a purchase-time feature) |
 | product weight, volume, category | anything computed from future orders |
-| **seller's historical late rate and order count, computed only from orders purchased before this order** | |
+| **seller's historical late rate and order count, computed only from orders DELIVERED before this order's purchase** (rolling 90-day windows + all-time late rate) | |
+| **platform context:** late rate of all orders delivered in the previous 30 days; 7-day vs 28-day order-volume ratio | |
 
 - **Multi-seller orders:** use the primary seller (highest item value) for the seller features, plus `n_sellers`.
 - **Split:** time-based (for example train ≤ 2017-12, validation 2018-01 to 2018-03, test 2018-04 onward; adjust after EDA to the actual date range).
-- **Models:** logistic regression (scaled + one-hot) → LightGBM (`scale_pos_weight` or class weights). Tune on validation only.
+- **Models:** logistic regression (scaled + one-hot) → LightGBM (`scale_pos_weight` or class weights). Tune on validation only. **Result (Day 3): logistic regression won** (valid PR-AUC 0.284 vs 0.213; test 0.094 vs 0.073) and is the production model.
 - **Metrics:** PR-AUC (primary), ROC-AUC, recall at the chosen precision, confusion matrix at the threshold.
 - **Threshold:** minimise expected cost = cost_FN × FN + cost_FP × FP (state the assumed costs).
-- **Explainability:** SHAP summary plot (global) and a per-order waterfall in the app.
-- **Artefacts:** `models/late_delivery_lgbm.pkl` + `models/metadata.json` (features, threshold, metrics, training dates, version).
+- **Explainability:** SHAP (exact linear SHAP = coefficient × (value − training mean), cross-checked with `shap.LinearExplainer`): global importance and a per-order explanation in the app.
+- **Artefacts:** `models/late_delivery_model.pkl` + `models/metadata.json` (features, threshold, metrics, training dates, version) + `models/order_risk_scores.parquet` (reloaded into `fact_order_risk` by `build_db.py`).
 
 ## 5. GenAI Module 1: "Ask the Data" (text-to-SQL)
 
@@ -195,7 +196,7 @@ DUCKDB_PATH=data/olist.duckdb
 | # | Decision | Alternatives | Reason |
 |---|---|---|---|
 | D1 | DuckDB | PostgreSQL, SQLite | Analytical speed, zero ops, portable |
-| D2 | LightGBM for late delivery | Deep learning, random forest | Best fit for tabular data; fast; SHAP support |
+| D2 | ~~LightGBM~~ **Logistic regression** for late delivery (revised Day 3) | LightGBM, deep learning, random forest | Planned LightGBM; under strong drift it early-stopped after a few trees and lost on validation and test. The linear model extrapolates and is exactly explainable |
 | D3 | Evaluation-driven prompting for text-to-SQL, **no fine-tuning** | Fine-tune a small model for SQL | Errors come mostly from business definitions; a semantic layer + examples fix them more cheaply (to be confirmed by error analysis) |
 | D4 | LoRA for the review-theme classifier | Full fine-tuning, API-only | Few labels (~1.5k) → PEFT lowers overfitting risk and fits a free GPU; small adapter; cheap batch inference. Compared against TF-IDF and zero-shot |
 | D5 | Time-based split | Random split | Prevents future leakage; mirrors deployment |

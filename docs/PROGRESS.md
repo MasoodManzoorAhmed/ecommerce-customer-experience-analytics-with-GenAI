@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 2 complete; next: Day 3 ML (`src/features.py`, late-delivery model)
+## Status: Day 3 complete; next: Day 4 Power BI (export star schema + fact_order_risk to Parquet)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -24,9 +24,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] `notebooks/01_eda.ipynb` + 5 insights (with numbers), incl. payment method vs approval/delivery time; stats in `src/stats.py` (tests in `tests/test_stats.py`), extracts in `sql/05_eda_queries.sql`; figures in `docs/figures/eda_*.png`
 
 ### Day 3: ML
-- [ ] `src/features.py` (purchase-time features, seller history from earlier orders only)
-- [ ] `notebooks/02_late_delivery_model.ipynb`: baseline vs LightGBM, PR-AUC, threshold, SHAP
-- [ ] `fact_order_risk` + `models/` artefacts
+- [x] `src/features.py` (purchase-time features; seller history from orders DELIVERED before purchase; rolling 90-day windows; market context); SQL `sql/06_ml_features.sql`; leakage tests `tests/test_features.py`
+- [x] `notebooks/02_late_delivery_model.ipynb`: logistic regression vs LightGBM (**logistic wins**), PR-AUC, cost threshold, SHAP; code in `src/train.py`, `src/predict.py`
+- [x] `fact_order_risk` + `models/` artefacts (`late_delivery_model.pkl`, `metadata.json`, `order_risk_scores.parquet`; reloaded by `build_db.py`)
 
 ### Day 4: Power BI
 - [ ] 3 pages + measures + screenshots
@@ -96,6 +96,16 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Payment method vs approval | median approval boleto 29.06 h vs card 0.27 h; Kruskal-Wallis H = 32,338, ε² = 0.34; mean days after approval boleto 12.12 vs card 12.17 | `01_eda.ipynb` Insight 5 |
 | 2026-10-19 | Payment method vs late | χ² = 17.4, p = 0.000586, Cramér's V = 0.013 (negligible) | `01_eda.ipynb` Insight 5 |
 | 2026-10-19 | Written-comment rate | late 58.9% vs on time 39.3% | `01_eda.ipynb` bonus |
+| 2026-10-19 | ML split sizes / late rate | train 2017: 43,426 (5.65%) · valid 2018-01..03: 20,627 (12.88%) · test 2018-04..08: 32,150 (4.42%) | `02_late_delivery_model.ipynb` §1 |
+| 2026-10-19 | **Model selection (valid PR-AUC)** | logistic regression 0.284 (C=0.01, no class weight) vs best LightGBM 0.213 (of 24 configs; early-stopped at 1-14 trees) | §3 |
+| 2026-10-19 | **Test PR-AUC (evaluated once)** | logistic regression 0.0943 (lift 2.13x over base rate 0.0442; ROC-AUC 0.727) · LightGBM 0.0725 (ROC-AUC 0.636) | §4 |
+| 2026-10-19 | Test precision at top k% risk | top 1% 0.140 · top 5% 0.106 · top 10% 0.105 · top 20% 0.102 (lift 3.2x / 2.4x / 2.4x / 2.3x) | §4 |
+| 2026-10-19 | Cost-based threshold (FN 5 : FP 1, chosen on valid) | 0.045; valid cost 0.745x of flag-nothing; **test: precision 9.4%, recall 57.8%, flags 27.3%, cost 10,951 vs 7,105 flag-nothing (1.54x)** | §5 |
+| 2026-10-19 | Threshold sensitivity on test (cost / flag-nothing) | 3:1 → 1.795 · 5:1 → 1.541 · 10:1 → 1.250 | §5 |
+| 2026-10-19 | Top SHAP drivers (test, mean abs log-odds) | promised_days 0.460 · distance_km 0.275 · customer_state 0.227 · same_state 0.192 · market_late_rate_30d 0.149 | §6 |
+| 2026-10-19 | SHAP check | own linear SHAP = shap.LinearExplainer (max diff 0.00); contributions reproduce logit (max err 2.66e-15) | §6 |
+| 2026-10-19 | Mean predicted vs actual late rate | test 3.78% vs 4.42%; valid 3.42% vs 12.88% | `fact_order_risk` check |
+| 2026-10-19 | fact_order_risk | 96,203 scored orders (test: high 8,772 · medium 13,238 · low 10,140) | §7 |
 
 ## Decisions log
 
@@ -120,11 +130,19 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Rank-based tests (Mann-Whitney, Spearman, Kruskal-Wallis) + effect sizes + bootstrap CI | Review scores are ordinal and J-shaped; with ~95k rows p-values are always tiny, so effect sizes carry the conclusion |
 | 2026-10-19 | Ruff lints notebooks too; E402 ignored for `notebooks/*.ipynb` only | Notebooks must add the project root to sys.path before importing `src` |
 | 2026-10-19 | **Day 3 implication:** time-based split is essential | Late rate spikes (2017-11, 2018-02/03) and promised days drift in 2018 |
+| 2026-10-19 | Seller history counts only orders DELIVERED before the purchase (stricter than 'purchased before') | An earlier order still in transit has no known outcome at purchase time |
+| 2026-10-19 | Rolling 90-day seller windows + market context (30-day platform late rate, 7d/28d volume ratio) replace all-time counts | All-time counts grow with platform age (non-stationary); decided on validation |
+| 2026-10-19 | Keep `is_nov_dec` although constant in valid/test | Removing it dropped valid PR-AUC 0.267 → 0.188: it absorbs the 2017 holiday spike so other weights aren't distorted |
+| 2026-10-19 | **Production model = logistic regression, not LightGBM** (ARCHITECTURE D2 revised) | Wins on validation (0.284 vs 0.213) and test; trees can't extrapolate under drift. Rule 6: report what wins |
+| 2026-10-19 | No class weighting in final model | Higher valid PR-AUC (0.284 vs 0.267) and probabilities stay on the real base-rate scale |
+| 2026-10-19 | Threshold from FN:FP = 5:1 on validation; reported as NOT transferring to test | Honest result: fixed threshold fails under a 3x base-rate drop; recommend monthly recalibration or top-k use |
+| 2026-10-19 | Transparency: an earlier feature set was scored on test once before drift was diagnosed | Noted in notebook §3; all later choices made on validation only |
 | 2026-10-19 | Seller/category on-time: an order counts for every seller/category in it | Simple, stated; multi-seller orders are 1,275 of 96,470 delivered (1.32%) |
 | 2026-10-19 | Raw layer loaded with `all_varchar = true`; all type casting done in `sql/01_staging.sql` | Raw copy is exact; every cast is explicit and reviewable |
 | 2026-10-19 | Download via Kaggle public endpoint instead of the Kaggle API key | Reproducible for anyone, no credential to manage |
 | 2026-10-19 | Ruff line-length 100, rules E/F/I/UP/B (`pyproject.toml`); `.gitattributes` forces LF | One lint config for local + CI; consistent line endings for Linux deployment |
 
 ## Blockers / notes
+- `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.
 - Global git identity on this PC is `sarkarmenssalon-creator`; first commit was authored as Masood Manzoor Ahmed via a per-commit override. Set a repo-local identity before the next commit.
 - Power BI: no native DuckDB connector; plan is to export star-schema tables to Parquet on Day 4.

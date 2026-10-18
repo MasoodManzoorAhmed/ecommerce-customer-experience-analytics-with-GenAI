@@ -1,0 +1,103 @@
+{
+  "model_version": "logreg_v1_2026-10-19",
+  "model_type": "LogisticRegression (sklearn pipeline: impute + scale + one-hot)",
+  "params": {
+    "C": 0.01,
+    "class_weight": null
+  },
+  "features": [
+    "promised_days",
+    "purchase_weekday",
+    "purchase_hour",
+    "is_nov_dec",
+    "distance_km",
+    "same_state",
+    "order_value",
+    "freight_value",
+    "freight_ratio",
+    "n_items",
+    "n_sellers",
+    "total_weight_g",
+    "total_volume_cm3",
+    "seller_orders_90d",
+    "seller_delivered_90d",
+    "seller_late_rate_90d",
+    "seller_prior_late_rate",
+    "market_late_rate_30d",
+    "market_volume_ratio",
+    "customer_state",
+    "seller_state",
+    "payment_type_main",
+    "primary_category"
+  ],
+  "numeric_features": [
+    "promised_days",
+    "purchase_weekday",
+    "purchase_hour",
+    "is_nov_dec",
+    "distance_km",
+    "same_state",
+    "order_value",
+    "freight_value",
+    "freight_ratio",
+    "n_items",
+    "n_sellers",
+    "total_weight_g",
+    "total_volume_cm3",
+    "seller_orders_90d",
+    "seller_delivered_90d",
+    "seller_late_rate_90d",
+    "seller_prior_late_rate",
+    "market_late_rate_30d",
+    "market_volume_ratio"
+  ],
+  "categorical_features": [
+    "customer_state",
+    "seller_state",
+    "payment_type_main",
+    "primary_category"
+  ],
+  "train_period": [
+    "2017-01-05 11:56:06",
+    "2017-12-31 23:29:31"
+  ],
+  "valid_period": [
+    "2018-01-01 02:48:41",
+    "2018-03-31 23:54:10"
+  ],
+  "test_period": [
+    "2018-04-01 00:11:32",
+    "2018-08-29 15:00:37"
+  ],
+  "threshold": 0.04497243041638931,
+  "cost_fn": 5.0,
+  "cost_fp": 1.0,
+  "valid_metrics": {
+    "pr_auc": 0.2840207877684837,
+    "roc_auc": 0.725601873988534,
+    "base_rate": 0.12881175158772482
+  },
+  "test_metrics": {
+    "pr_auc": 0.0943343320615055,
+    "roc_auc": 0.7267762821564072,
+    "base_rate": 0.04419906687402799,
+    "pr_auc_lift": 2.1343059646568627
+  },
+  "test_at_threshold": {
+    "tp": 821.0,
+    "fp": 7951.0,
+    "fn": 600.0,
+    "tn": 22778.0,
+    "precision": 0.09359325125398997,
+    "recall": 0.577762139338494,
+    "flagged_pct": 27.284603421461895,
+    "cost": 10951.0,
+    "cost_flag_none": 7105.0,
+    "cost_flag_all": 30729.0
+  },
+  "lightgbm_comparison": {
+    "valid_pr_auc": 0.212975017814089,
+    "test_pr_auc": 0.07250882067459354
+  },
+  "seed": 42
+}
