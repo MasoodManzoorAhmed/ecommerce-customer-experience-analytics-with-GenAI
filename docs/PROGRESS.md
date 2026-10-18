@@ -2,17 +2,18 @@
 
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 
-## Status: Day 0 (project set up, nothing built yet)
+## Status: Day 0 complete (except GitHub remote + .env); next: Day 1 SQL (`sql/01_staging.sql`)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
-- [ ] Python 3.12 installed; `.venv` created; `pip install -r requirements.txt`
-- [ ] Git repo initialised, first commit, GitHub repo created (`ecommerce-customer-experience-analytics`)
-- [ ] Kaggle account + dataset downloaded to `data/raw/`
-- [ ] `.env` created from `.env.example` (OpenRouter or Gemini key); **confirm `.env` is git-ignored**
+- [x] Python 3.12.10 installed; `.venv` created; `pip install -r requirements.txt` (exact versions in `requirements.lock.txt`)
+- [x] Git repo initialised, first commit (`aa1b112`)
+- [ ] GitHub repo created (`ecommerce-customer-experience-analytics`) and pushed
+- [x] Dataset downloaded to `data/raw/` via `scripts/download_data.py` (Kaggle public endpoint, no API key needed)
+- [ ] `.env` created from `.env.example` (OpenRouter or Gemini key) (needed by Day 5). `.env` git-ignore **confirmed** with `git check-ignore`
 
 ### Day 1: SQL
-- [ ] `scripts/build_db.py` loads 9 CSVs into `data/olist.duckdb`
+- [x] `scripts/build_db.py` loads 9 CSVs into `data/olist.duckdb` (raw schema, all columns as text; row counts cross-checked with pandas)
 - [ ] `sql/01_staging.sql`
 - [ ] `sql/02_star_schema.sql`
 - [ ] `sql/03_business_queries.sql` (10–12 queries + one-line insights)
@@ -51,10 +52,19 @@ Update this file at the end of every work session: tick tasks, record real numbe
 
 | Date | Metric | Value | Source (notebook/script) |
 |---|---|---|---|
+| 2026-10-19 | Raw row counts | orders 99,441 · order_items 112,650 · customers 99,441 · order_payments 103,886 · order_reviews 99,224 · products 32,951 · sellers 3,095 · geolocation 1,000,163 · category_translation 71 | `scripts/build_db.py` (matched by pandas) |
+| 2026-10-19 | Distinct customer_unique_id | 96,096 (vs 99,441 customer_id) | ad-hoc DuckDB check |
+| 2026-10-19 | Purchase timestamp range | 2016-09-04 21:15:19 → 2018-10-17 17:30:18 | ad-hoc DuckDB check |
+| 2026-10-19 | Reviews: rows / distinct review_id / distinct order_id | 99,224 / 98,410 / 98,673 (duplicates confirmed; dedup in staging) | ad-hoc DuckDB check |
 
 ## Decisions log
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-10-19 | Raw layer loaded with `all_varchar = true`; all type casting done in `sql/01_staging.sql` | Raw copy is exact; every cast is explicit and reviewable |
+| 2026-10-19 | Download via Kaggle public endpoint instead of the Kaggle API key | Reproducible for anyone, no credential to manage |
+| 2026-10-19 | Ruff line-length 100, rules E/F/I/UP/B (`pyproject.toml`); `.gitattributes` forces LF | One lint config for local + CI; consistent line endings for Linux deployment |
 
 ## Blockers / notes
+- Global git identity on this PC is `sarkarmenssalon-creator`; first commit was authored as Masood Manzoor Ahmed via a per-commit override. Set a repo-local identity before the next commit.
+- Power BI: no native DuckDB connector; plan is to export star-schema tables to Parquet on Day 4.
