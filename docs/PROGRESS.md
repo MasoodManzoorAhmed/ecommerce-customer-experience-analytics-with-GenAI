@@ -2,7 +2,7 @@
 
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 
-## Status: Day 0 complete (except GitHub remote + .env); next: Day 1 SQL (`sql/01_staging.sql`)
+## Status: Day 1 in progress: staging done; next: `sql/02_star_schema.sql`
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -14,7 +14,7 @@ Update this file at the end of every work session: tick tasks, record real numbe
 
 ### Day 1: SQL
 - [x] `scripts/build_db.py` loads 9 CSVs into `data/olist.duckdb` (raw schema, all columns as text; row counts cross-checked with pandas)
-- [ ] `sql/01_staging.sql`
+- [x] `sql/01_staging.sql` (8 views, all keys verified unique)
 - [ ] `sql/02_star_schema.sql`
 - [ ] `sql/03_business_queries.sql` (10–12 queries + one-line insights)
 
@@ -56,11 +56,21 @@ Update this file at the end of every work session: tick tasks, record real numbe
 | 2026-10-19 | Distinct customer_unique_id | 96,096 (vs 99,441 customer_id) | ad-hoc DuckDB check |
 | 2026-10-19 | Purchase timestamp range | 2016-09-04 21:15:19 → 2018-10-17 17:30:18 | ad-hoc DuckDB check |
 | 2026-10-19 | Reviews: rows / distinct review_id / distinct order_id | 99,224 / 98,410 / 98,673 (duplicates confirmed; dedup in staging) | ad-hoc DuckDB check |
+| 2026-10-19 | Staging row counts | stg_orders 99,441 · stg_order_items 112,650 · stg_customers 99,441 · stg_payments 103,886 · stg_reviews 98,673 · stg_products 32,951 · stg_sellers 3,095 · stg_geolocation 19,010 | `sql/01_staging.sql` + verification query |
+| 2026-10-19 | Reviews with comment text | 40,748 of 98,673 (after trim/blank→NULL) | `stg_reviews` |
+| 2026-10-19 | Orders with no review | 768 | `stg_orders` vs `stg_reviews` |
+| 2026-10-19 | Zip prefixes not in geolocation | customers 278 · sellers 7 (raw); +5 prefixes removed by bbox filter | ad-hoc DuckDB check |
 
 ## Decisions log
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-10-19 | Staging = views; no rows dropped; no business logic | Raw stays the single source; filtering decisions are made visibly in the star schema / audit |
+| 2026-10-19 | One review per order: latest `review_answer_timestamp` (ties → creation date → review_id) | 547 orders have >1 review; no ties on answer ts observed |
+| 2026-10-19 | `payment_installments` not selected in `stg_payments` | Project rule 4 (payment method only) |
+| 2026-10-19 | Added 2 missing category translations by hand; NULL category → 'unknown' | Translation file lacks `pc_gamer` and `portateis_cozinha_e_preparadores_de_alimentos` |
+| 2026-10-19 | Geolocation: drop points outside Brazil bbox (lat −34..5.3, lng −74..−34.8) before averaging per zip | 47 bad points; avoids zip centres pulled abroad |
+| 2026-10-19 | Estimated delivery kept as DATE (source is always 00:00:00) | **Open question for star schema:** compare `is_late` on dates, so a delivery on the promised day is on time |
 | 2026-10-19 | Raw layer loaded with `all_varchar = true`; all type casting done in `sql/01_staging.sql` | Raw copy is exact; every cast is explicit and reviewable |
 | 2026-10-19 | Download via Kaggle public endpoint instead of the Kaggle API key | Reproducible for anyone, no credential to manage |
 | 2026-10-19 | Ruff line-length 100, rules E/F/I/UP/B (`pyproject.toml`); `.gitattributes` forces LF | One lint config for local + CI; consistent line endings for Linux deployment |
