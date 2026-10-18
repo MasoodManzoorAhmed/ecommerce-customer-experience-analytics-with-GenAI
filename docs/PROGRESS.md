@@ -1,8 +1,9 @@
 # Progress Tracker
 
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
+Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 1 in progress: staging + star schema done; next: `sql/03_business_queries.sql`
+## Status: Day 1 complete; next: Day 2 data-quality audit (`notebooks/00_data_quality_audit.ipynb`)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -16,7 +17,7 @@ Update this file at the end of every work session: tick tasks, record real numbe
 - [x] `scripts/build_db.py` loads 9 CSVs into `data/olist.duckdb` (raw schema, all columns as text; row counts cross-checked with pandas)
 - [x] `sql/01_staging.sql` (8 views, all keys verified unique)
 - [x] `sql/02_star_schema.sql` (6 tables; totals reconcile with staging; no orphan keys)
-- [ ] `sql/03_business_queries.sql` (10–12 queries + one-line insights)
+- [x] `sql/03_business_queries.sql` (12 queries + one-line insights), run by `scripts/run_queries.py`; results in `sql/results/*.csv`
 
 ### Day 2: Data-quality audit + EDA
 - [ ] `notebooks/00_data_quality_audit.ipynb` + `docs/DATA_QUALITY_REPORT.md` (each issue: size, fix, reason)
@@ -66,6 +67,18 @@ Update this file at the end of every work session: tick tasks, record real numbe
 | 2026-10-19 | Late count if compared on timestamps instead | 7,826 (1,292 same-day deliveries would be miscounted) | ad-hoc DuckDB check |
 | 2026-10-19 | Main payment method (orders) | credit_card 74,975 · boleto 19,784 · voucher 3,151 · debit_card 1,527 · not_defined 3 · none 1 | `fact_orders.payment_type_main` |
 | 2026-10-19 | dq_flags | no_items 775 · no_review 768 · payment_total_mismatch 249 · carrier_before_purchase 166 · customer_before_carrier 23 · delivered_without_date 8 · date_without_delivered_status 6 · no_payment 1; clean orders 97,467 | `fact_orders.dq_flags` |
+| 2026-10-19 | Q01 monthly revenue | R$111,798 (2017-01) → R$826k–978k/month in 2018-01..08; peak 2017-11: 7,288 orders, +52.4% MoM | `sql/results/q01_monthly_trend.csv` |
+| 2026-10-19 | Q02 revenue share by state | SP 38.3% · RJ 13.3% · MG 11.7% | `q02_revenue_by_state.csv` |
+| 2026-10-19 | Q03 category concentration | 74 categories; top 7 = 49.9%, top 15 = 76.3%; #1 health_beauty 9.3% | `q03_category_pareto.csv` |
+| 2026-10-19 | Q04 on-time by state | overall 93.23%; worst MA 82.64%, CE 86.26%; best PR 95.96%; avg delivery SP 8.8 d vs MA 21.5 d | `q04_on_time_by_state.csv` |
+| 2026-10-19 | Q05 worst seller (≥100 orders) | 81.0% on-time (389 orders, MA); 8 of worst 10 in SP | `q05_worst_sellers_on_time.csv` |
+| 2026-10-19 | Q06 worst categories (≥500 orders) | 91.9%–92.7% on-time (narrow spread) | `q06_worst_categories_on_time.csv` |
+| 2026-10-19 | **Q07 late vs on-time review** | **2.27 vs 4.29 avg stars; 1–2 stars 62.4% vs 9.3%** | `q07_reviews_late_vs_on_time.csv` |
+| 2026-10-19 | Q08 review by delay | 1–3 d late: 3.29 avg (32.1% 1–2★); 8–14 d late: 1.67 (80.2%); 15+ d: 1.72 (78.4%) | `q08_reviews_by_delay.csv` |
+| 2026-10-19 | Q09 seller Pareto | 533 of 2,970 sellers (17.9%) = 80% of revenue; top 20% = 82.3% | `q09_seller_pareto.csv` |
+| 2026-10-19 | Q10 repeat customers | 3.0% (2,801 of 93,350) with ≥2 delivered orders; 5.51% of revenue | `q10_repeat_customers.csv` |
+| 2026-10-19 | Q11 cohort repeat by month +6 | 2.23%–4.18% (mean 3.03%), cohorts 2017-01..2018-02 | `q11_cohort_retention.csv` |
+| 2026-10-19 | Q12 payment method | card 75.5% of orders, AOV R$143.24; boleto median approval 29.06 h vs card 0.27 h; late % boleto 7.32 vs card 6.69 | `q12_payment_method.csv` |
 
 ## Decisions log
 
@@ -82,6 +95,9 @@ Update this file at the end of every work session: tick tasks, record real numbe
 | 2026-10-19 | `payment_type_main` = method with largest amount; ties (188 orders) → earliest payment_sequential | Deterministic; payment method only (rule 4) |
 | 2026-10-19 | `dim_customer` at customer_unique_id grain; address from most recent order | 96,096 people vs 99,441 order-level customer_ids; 39 people span >1 state |
 | 2026-10-19 | Integer surrogate keys via ROW_NUMBER over natural id | Deterministic across rebuilds; compact Power BI relationships |
+| 2026-10-19 | Q01 trend limited to 2017-01..2018-08 | 2016 has only 267 delivered orders (Nov missing); late-2018 months truncated, so MoM % is meaningless there |
+| 2026-10-19 | Query results saved as CSV in `sql/results/` and committed | Every README number traceable to a file produced by code |
+| 2026-10-19 | Seller/category on-time: an order counts for every seller/category in it | Simple, stated; multi-seller orders are 1,275 of 96,470 delivered (1.32%) |
 | 2026-10-19 | Raw layer loaded with `all_varchar = true`; all type casting done in `sql/01_staging.sql` | Raw copy is exact; every cast is explicit and reviewable |
 | 2026-10-19 | Download via Kaggle public endpoint instead of the Kaggle API key | Reproducible for anyone, no credential to manage |
 | 2026-10-19 | Ruff line-length 100, rules E/F/I/UP/B (`pyproject.toml`); `.gitattributes` forces LF | One lint config for local + CI; consistent line endings for Linux deployment |
