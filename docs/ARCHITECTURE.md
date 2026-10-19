@@ -12,7 +12,7 @@
                                                                           │                                      │
                           sql/01_staging.sql  (types, English categories, geo dedup, review dedup)               │
                           sql/02_star_schema.sql (facts + dims)                                                  │
-                          sql/03_business_queries.sql (BQ1–BQ6)                                                  │
+                          sql/04_business_queries.sql (BQ1–BQ6)                                                  │
                                                                           │                                      │
           ┌───────────────────────────┬───────────────────────────┬──────┴──────────────┬───────────────────────┐
           ▼                           ▼                           ▼                     ▼                       ▼
@@ -164,7 +164,7 @@ ecommerce-customer-experience-analytics/
 ├─ docs/            PROJECT_REQUIREMENTS.md, GOALS.md, ARCHITECTURE.md, PROGRESS.md, START_PROMPT.md, DATA_QUALITY_REPORT.md
 ├─ data/            raw/ (git-ignored CSVs), olist.duckdb (git-ignored or small extract)
 ├─ scripts/         download_data.py, build_db.py
-├─ sql/             01_staging.sql, 02_star_schema.sql, 03_business_queries.sql
+├─ sql/             01_staging.sql, 02_star_schema.sql, 04_business_queries.sql
 ├─ notebooks/       00_data_quality_audit.ipynb, 01_eda.ipynb, 02_late_delivery_model.ipynb
 ├─ src/             db.py, features.py, train.py, predict.py
 ├─ models/          late_delivery_lgbm.pkl, metadata.json

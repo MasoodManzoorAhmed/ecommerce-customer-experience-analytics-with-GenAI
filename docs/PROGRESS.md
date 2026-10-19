@@ -17,10 +17,10 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] `scripts/build_db.py` loads 9 CSVs into `data/olist.duckdb` (raw schema, all columns as text; row counts cross-checked with pandas)
 - [x] `sql/01_staging.sql` (8 views, all keys verified unique)
 - [x] `sql/02_star_schema.sql` (6 tables; totals reconcile with staging; no orphan keys)
-- [x] `sql/03_business_queries.sql` (12 queries + one-line insights), run by `scripts/run_queries.py`; results in `sql/results/*.csv`
+- [x] `sql/04_business_queries.sql` (12 queries + one-line insights), run by `scripts/run_queries.py`; results in `sql/results/*.csv`
 
 ### Day 2: Data-quality audit + EDA
-- [x] `notebooks/00_data_quality_audit.ipynb` + `docs/DATA_QUALITY_REPORT.md`: 45 checks in `sql/04_data_quality_checks.sql` (decision + action stored beside each check), run by `src/data_quality.py`; tests in `tests/test_db.py` (4 pass)
+- [x] `notebooks/00_data_quality_audit.ipynb` + `docs/DATA_QUALITY_REPORT.md`: 45 checks in `sql/03_data_quality_checks.sql` (decision + action stored beside each check), run by `src/data_quality.py`; tests in `tests/test_db.py` (4 pass)
 - [x] `notebooks/01_eda.ipynb` + 5 insights (with numbers), incl. payment method vs approval/delivery time; stats in `src/stats.py` (tests in `tests/test_stats.py`), extracts in `sql/05_eda_queries.sql`; figures in `docs/figures/eda_*.png`
 
 ### Day 3: ML
@@ -107,6 +107,12 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | SHAP check | own linear SHAP = shap.LinearExplainer (max diff 0.00); contributions reproduce logit (max err 2.66e-15) | §6 |
 | 2026-10-19 | Mean predicted vs actual late rate | test 3.78% vs 4.42%; valid 3.42% vs 12.88% | `fact_order_risk` check |
 | 2026-10-19 | fact_order_risk | 96,203 scored orders (test: high 8,772 · medium 13,238 · low 10,140) | §7 |
+| 2026-10-19 | Fresh-build SQL test | temp DB from raw CSVs; all named queries in 03/04/05/06 return rows (5 tests) | `tests/test_sql_build.py` |
+| 2026-10-19 | Best one-feature rule (chosen on valid) | distance_km (farther = riskier): valid PR-AUC 0.174, test 0.059 | notebook 02 §3b/§4b |
+| 2026-10-19 | **Test PR-AUC 95% CI (paired bootstrap, 1,000, seed 42)** | logistic 0.094 [0.087, 0.104]; vs LightGBM diff [−0.029, −0.016]; vs rule diff [−0.043, −0.029] | notebook 02 §4b |
+| 2026-10-19 | Error analysis by month (test) | PR-AUC 0.181 (Apr) · 0.151 (May) · 0.058 (Jun, late rate 1.2%, precision 3.7%) · 0.075 (Jul) · 0.089 (Aug) | notebook 02 §6 |
+| 2026-10-19 | Error analysis by state (recall at threshold) | PE 87.8% · CE 84.4% · BA 79.8% · RJ 79.1% … MG 18.3% · RS 27.5% · PR 29.5% | notebook 02 §6 |
+| 2026-10-19 | Missed vs caught late orders (medians) | distance 319 vs 667 km; market late rate 9.6% vs 4.9% (1,421 late: 821 caught, 600 missed) | notebook 02 §6 |
 
 ## Decisions log
 
@@ -125,6 +131,13 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Integer surrogate keys via ROW_NUMBER over natural id | Deterministic across rebuilds; compact Power BI relationships |
 | 2026-10-19 | Q01 trend limited to 2017-01..2018-08 | 2016 has only 267 delivered orders (Nov missing); late-2018 months truncated, so MoM % is meaningless there |
 | 2026-10-19 | Query results saved as CSV in `sql/results/` and committed | Every README number traceable to a file produced by code |
+| 2026-10-19 | Audit notebook §0 = pandas first look (read_csv, .info(), .head()) + pandas-vs-DuckDB check (rows, columns, missing all match) | First step of the project is now saved and reproducible |
+| 2026-10-19 | SQL renumbered: 03_data_quality_checks before 04_business_queries | Files read in the logical order (audit before analysis) |
+| 2026-10-19 | q02–q06 sort on unrounded values + tie-breakers | Ties at the LIMIT boundary made top-10 lists change between runs; now identical across 3 runs |
+| 2026-10-19 | README: step-by-step walkthrough, real Key Results, LightGBM claims corrected | Non-technical readers can follow the order; README matched logged results |
+| 2026-10-19 | README walkthrough order = first look → clean (01/02) → audit (03) | `03_data_quality_checks.sql` reads the cleaned tables (47 references), so it runs after the build; it sizes raw issues and verifies the fixes |
+| 2026-10-19 | Added fresh-build SQL test (skips without raw data) | PRD acceptance criterion "queries run cleanly from a fresh build" is now automated |
+| 2026-10-19 | Added rule baseline, paired bootstrap CI and error analysis to notebook 02 | Show the model beats a simple rule and the gaps aren't noise; locate where it fails |
 | 2026-10-19 | Added 'Dataset overview' (§0) to the audit notebook | The first look at the data (tables, columns, sample rows) was only in session output; now it's reproducible in the repo |
 | 2026-10-19 | DQ check metadata (table/issue/decision/action) stored as comments beside each check SQL | Decision and measurement can't drift apart; a test fails if any check lacks metadata |
 | 2026-10-19 | `src/db.py` shared parser + read-only `connect()`; `run_queries.py` refactored to use it (q09 output unchanged) | One implementation, reused by scripts, notebooks and later the app |

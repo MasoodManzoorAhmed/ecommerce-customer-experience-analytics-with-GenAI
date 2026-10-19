@@ -1,5 +1,5 @@
 -- =====================================================================
--- 03_business_queries.sql: business analyses on the star schema
+-- 04_business_queries.sql: business analyses on the star schema
 -- Run with: python scripts/run_queries.py  (results -> sql/results/*.csv)
 -- Each query: "-- name:" marker, the business question (BQ ref), and a
 -- one-line INSIGHT written only from the actual output.
@@ -41,7 +41,7 @@ FROM fact_orders  AS f
 JOIN dim_customer AS c ON c.customer_key = f.customer_key
 WHERE f.is_delivered
 GROUP BY c.state
-ORDER BY revenue DESC
+ORDER BY revenue DESC, c.state  -- tie-breaker keeps the order deterministic
 LIMIT 10;
 
 
@@ -66,7 +66,7 @@ SELECT
                                                                                AS cumulative_pct,
     COUNT(*) OVER ()                                                           AS n_categories
 FROM cat
-ORDER BY revenue DESC
+ORDER BY revenue DESC, category_en
 LIMIT 15;
 
 
@@ -85,7 +85,7 @@ JOIN dim_customer AS c ON c.customer_key = f.customer_key
 WHERE f.is_delivered
 GROUP BY ROLLUP (c.state)
 HAVING COUNT(*) >= 500
-ORDER BY (c.state IS NOT NULL), on_time_pct;
+ORDER BY (c.state IS NOT NULL), AVG(CASE WHEN f.is_late THEN 0 ELSE 1 END), c.state;
 
 
 -- name: q05_worst_sellers_on_time
@@ -107,7 +107,8 @@ FROM seller_orders AS so
 JOIN dim_seller    AS s ON s.seller_key = so.seller_key
 GROUP BY s.seller_id, s.state
 HAVING COUNT(*) >= 100
-ORDER BY on_time_pct
+-- sort on the UNROUNDED rate, then tie-breakers, so the top 10 is the same on every run
+ORDER BY AVG(CASE WHEN so.is_late THEN 0 ELSE 1 END), COUNT(*) DESC, s.seller_id
 LIMIT 10;
 
 
@@ -128,7 +129,8 @@ SELECT
 FROM cat_orders
 GROUP BY category_en
 HAVING COUNT(*) >= 500
-ORDER BY on_time_pct
+-- sort on the UNROUNDED rate, then tie-breakers, so the top 10 is the same on every run
+ORDER BY AVG(CASE WHEN is_late THEN 0 ELSE 1 END), COUNT(*) DESC, category_en
 LIMIT 10;
 
 

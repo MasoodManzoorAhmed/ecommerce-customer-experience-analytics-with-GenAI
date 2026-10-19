@@ -1,13 +1,13 @@
-"""Data-quality audit: run sql/04_data_quality_checks.sql and profile missing values."""
+"""Data-quality audit: run sql/03_data_quality_checks.sql and profile missing values."""
 
 from __future__ import annotations
 
 import duckdb
 import pandas as pd
 
-from src.db import load_named_sql
+from src.db import RAW_DIR, RAW_TABLES, load_named_sql
 
-CHECKS_FILE = "04_data_quality_checks.sql"
+CHECKS_FILE = "03_data_quality_checks.sql"
 AUDIT_COLUMNS = ["check", "table", "issue", "affected", "base", "pct", "decision", "action"]
 
 
@@ -29,6 +29,18 @@ def run_audit(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows)[AUDIT_COLUMNS]
+
+
+def read_raw_csvs() -> dict[str, pd.DataFrame]:
+    """Read each source CSV with pandas, every column as text (same rule as the DuckDB raw layer).
+
+    Returns {table_name: DataFrame}. dtype=str keeps values exactly as written in the file,
+    e.g. the zip prefix '01037' is not turned into the number 1037.
+    """
+    return {
+        table: pd.read_csv(RAW_DIR / csv_name, dtype=str)
+        for csv_name, table in sorted(RAW_TABLES.items(), key=lambda kv: kv[1])
+    }
 
 
 def table_overview(con: duckdb.DuckDBPyConnection, schema: str = "raw") -> pd.DataFrame:

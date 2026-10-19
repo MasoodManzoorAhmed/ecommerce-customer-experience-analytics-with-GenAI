@@ -217,3 +217,97 @@ def save_artifacts(model, metadata: dict, name: str = "late_delivery_model") -> 
     joblib.dump(model, model_path)
     meta_path.write_text(json.dumps(metadata, indent=2, default=str), encoding="utf-8")
     return model_path, meta_path
+
+
+# ----------------------------------------------------------------- robustness checks
+def bootstrap_pr_auc(
+    y: np.ndarray, scores: dict[str, np.ndarray], n_boot: int = 1000, seed: int = SEED
+) -> pd.DataFrame:
+    """Paired bootstrap of PR-AUC: every resample uses the SAME orders for every model.
+
+    Returns each model's PR-AUC with a 95% CI, plus the CI of each model's difference from
+    the first model in `scores` (if that CI excludes 0, the gap is unlikely to be noise).
+    """
+    rng = np.random.default_rng(seed)
+    names = list(scores)
+    draws = {name: [] for name in names}
+    n = len(y)
+    for _ in range(n_boot):
+        idx = rng.integers(0, n, n)
+        if y[idx].sum() == 0:
+            continue
+        for name in names:
+            draws[name].append(average_precision_score(y[idx], scores[name][idx]))
+    ref = np.array(draws[names[0]])
+    rows = []
+    for name in names:
+        d = np.array(draws[name])
+        diff = d - ref
+        rows.append(
+            {
+                "model": name,
+                "pr_auc": average_precision_score(y, scores[name]),
+                "ci_low": np.quantile(d, 0.025),
+                "ci_high": np.quantile(d, 0.975),
+                f"diff_vs_{names[0]}_low": np.quantile(diff, 0.025),
+                f"diff_vs_{names[0]}_high": np.quantile(diff, 0.975),
+            }
+        )
+    return pd.DataFrame(rows).set_index("model")
+
+
+def fit_rule(x_tr: pd.DataFrame, y_tr: np.ndarray, feature: str) -> dict:
+    """A one-feature ranking rule; its direction and missing-value fill come from TRAINING data."""
+    fill = float(x_tr[feature].median())
+    s = x_tr[feature].astype(float).fillna(fill).to_numpy()
+    direction = 1 if average_precision_score(y_tr, s) >= average_precision_score(y_tr, -s) else -1
+    return {"feature": feature, "direction": direction, "fill": fill}
+
+
+def rule_score(x: pd.DataFrame, rule: dict) -> np.ndarray:
+    """Score orders with a fitted one-feature rule (higher = riskier)."""
+    return rule["direction"] * x[rule["feature"]].astype(float).fillna(rule["fill"]).to_numpy()
+
+
+def rule_baselines(x_tr, y_tr, x_va, y_va, features) -> tuple[pd.DataFrame, dict]:
+    """Fit one rule per numeric feature on train; rank them by validation PR-AUC."""
+    rows, rules = [], {}
+    for feature in features:
+        rule = fit_rule(x_tr, y_tr, feature)
+        rules[feature] = rule
+        rows.append(
+            {
+                "feature": feature,
+                "higher_means": "more risk" if rule["direction"] > 0 else "less risk",
+                "valid_pr_auc": average_precision_score(y_va, rule_score(x_va, rule)),
+            }
+        )
+    table = pd.DataFrame(rows).sort_values("valid_pr_auc", ascending=False, ignore_index=True)
+    return table, rules[table.loc[0, "feature"]]
+
+
+def segment_metrics(
+    segment: pd.Series, y: np.ndarray, p: np.ndarray, threshold: float, min_late: int = 20
+) -> pd.DataFrame:
+    """Per-segment late rate, mean predicted risk, recall/precision at the threshold, PR-AUC.
+
+    Segments with fewer than `min_late` late orders get no PR-AUC (too few to be reliable).
+    """
+    df = pd.DataFrame({"segment": segment.to_numpy(), "y": y, "p": p, "flag": p >= threshold})
+    rows = []
+    for name, g in df.groupby("segment", observed=True):
+        late = int(g["y"].sum())
+        flagged = int(g["flag"].sum())
+        rows.append(
+            {
+                "segment": name,
+                "orders": len(g),
+                "late": late,
+                "late_rate": g["y"].mean(),
+                "mean_predicted": g["p"].mean(),
+                "recall": (g["flag"] & (g["y"] == 1)).sum() / late if late else np.nan,
+                "precision": (g["flag"] & (g["y"] == 1)).sum() / flagged if flagged else np.nan,
+                "pr_auc": average_precision_score(g["y"], g["p"]) if late >= min_late else np.nan,
+            }
+        )
+    return pd.DataFrame(rows).set_index("segment")

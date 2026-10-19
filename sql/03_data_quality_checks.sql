@@ -1,5 +1,5 @@
 -- =====================================================================
--- 04_data_quality_checks.sql: the data-quality audit, one check per block
+-- 03_data_quality_checks.sql: the data-quality audit, one check per block
 -- Run by src/data_quality.py (notebooks/00_data_quality_audit.ipynb).
 -- Each check returns ONE row: affected (rows with the issue), base (denominator).
 -- Metadata lines (-- table/issue/decision/action) are parsed into the audit table.

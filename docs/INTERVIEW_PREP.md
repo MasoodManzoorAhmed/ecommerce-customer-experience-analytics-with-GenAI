@@ -65,6 +65,9 @@ The concrete example is Brazilian zip prefixes like `01037`. Automatic type dete
 ### 🟢 "Show me where you first looked at the data."
 **Section 0 of the data-quality audit notebook.** It lists the 9 tables (1,550,922 rows, 52 columns in total), profiles every column (an example value, number of distinct values, % missing), and shows sample rows from each table. The distinct counts are where the first problems show up: `customer_unique_id` has fewer values than `customer_id`, and `review_id` has fewer values than review rows.
 
+### 🟡 "How do you know your SQL still works after a change?"
+**An automated fresh-build test.** It rebuilds the whole database from the raw CSVs into a temporary file and runs every named query in the audit, business, EDA and feature files, failing if any query errors or returns nothing. It also caught a real issue during development: two "top 10" rankings changed between runs because of ties at the cut-off. I fixed that with tie-breakers, and three consecutive runs now give identical results.
+
 ### 🟡 "How did you verify the load was correct?"
 **I counted rows with two independent readers, DuckDB and pandas, and they matched for all 9 tables.** This matters for the reviews file, where 3,852 comments contain line breaks. A naive line count would give the wrong number of rows.
 
@@ -128,7 +131,7 @@ Flags include 775 orders with no items, 768 with no review, 249 where payment to
 
 ---
 
-## 7. Business queries (`sql/03_business_queries.sql`)
+## 7. Business queries (`sql/04_business_queries.sql`)
 
 ### 🟢 "Which SQL techniques did you use?"
 **CTEs, window functions and aggregations, applied to real questions:**
@@ -199,7 +202,7 @@ The damage starts immediately. Just 1–3 days late drops the average to 3.29, a
 
 ### 🟢 "Walk me through your data-quality audit."
 **I wrote 45 checks across all 9 tables. Each records the issue's size (count and %), a decision (fix, flag, keep or out of scope) and the action taken.**
-The checks are SQL in `sql/04_data_quality_checks.sql`, with the decision written as metadata next to each query, so the measurement and the decision live together. A Python function runs them all and builds the audit table, and a unit test fails if any check is missing its decision. The result: 12 fixed, 17 flagged, 15 kept, 1 out of scope.
+The checks are SQL in `sql/03_data_quality_checks.sql`, with the decision written as metadata next to each query, so the measurement and the decision live together. A Python function runs them all and builds the audit table, and a unit test fails if any check is missing its decision. The result: 12 fixed, 17 flagged, 15 kept, 1 out of scope.
 
 ### 🟢 "What was the most important issue you found?"
 **Identity. `customer_id` is created per order, so 99,441 ids represent only 96,096 real people.** Counting by `customer_id` makes everyone look like a one-time buyer and the repeat-customer rate meaningless. Close behind: duplicate reviews per order (547 orders) and a non-unique `review_id` (1,603 rows), which would double-count reviews.
@@ -289,6 +292,15 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 ### 🟡 "What is SHAP, and how did you compute it?"
 **SHAP splits a single prediction into contributions from each feature, so they add up to the prediction.** For a linear model it's exact: contribution = coefficient × (feature value − training average), in log-odds. I implemented that, cross-checked it against the `shap` library (identical, max difference 0.00), and checked that the contributions plus the baseline reproduce the model's output (error 2.66e-15). One-hot columns are summed back so each original feature gets one number.
 
+### 🔴 "Does your model beat a simple business rule?"
+**Yes, and I tested it the same way as the models.** I built one-feature rules (e.g. "the farther the seller, the riskier"), learned each rule's direction on training data, and picked the best on validation: distance, with test PR-AUC 0.059. The model scores 0.094, and a paired bootstrap gives a difference CI of −0.043 to −0.029 for the rule, so the gap isn't luck. If a simple rule had won, I'd have recommended the rule.
+
+### 🔴 "How do you know 0.094 vs 0.073 isn't just noise?"
+**Paired bootstrap: I resampled the test orders 1,000 times, using the same orders for every model each time, and recomputed PR-AUC.** Logistic regression: 0.094 [95% CI 0.087–0.104]. The LightGBM-minus-logistic difference has a CI of −0.029 to −0.016, entirely below zero, so the ranking is reliable. Pairing matters: both models are scored on the same resampled orders, so the comparison isn't distorted by one resample happening to contain easier orders.
+
+### 🟡 "Where does your model fail?"
+**I did an error analysis on the test period.** By month, it ranks best in April–May (PR-AUC 0.15–0.18) and worst in June, when only 1.2% of orders were late. By state, it catches 78–88% of late orders in the North-East but only 18.3% in MG. The late orders it misses are short-distance (median 319 km vs 667 km for caught ones) and placed during platform-wide delay waves. That points to two fixes: model the platform late rate non-linearly, and add a dispatch-time model with carrier data.
+
 ### 🟡 "Is a PR-AUC of 0.094 good?"
 **It's modest, and I'd say so.** It's 2.13× random. The model's top 1% of orders are late 14.0% of the time against 4.42% overall. Purchase-time data simply can't see most causes of lateness (carrier problems, weather, strikes), which happen after checkout. A useful next step would be a second model at dispatch time, with carrier and pickup information.
 
@@ -367,3 +379,6 @@ Fill these in as each part is built, using real results only.
 | Top-1% / top-5% test precision | 14.0% / 10.6% | notebook 02 |
 | Threshold (5:1) on test | precision 9.4%, recall 57.8%, cost 1.54× flag-nothing | notebook 02 |
 | Top SHAP drivers | promised_days, distance_km, customer_state, same_state | notebook 02 |
+| Test PR-AUC 95% CI | 0.094 [0.087, 0.104] (paired bootstrap) | notebook 02 |
+| Best simple rule | distance_km, test PR-AUC 0.059 (model beats it) | notebook 02 |
+| Recall by state at threshold | MG 18.3% … PE 87.8% | notebook 02 |

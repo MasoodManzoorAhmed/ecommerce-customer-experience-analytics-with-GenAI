@@ -76,7 +76,7 @@ A marketplace's reputation depends on customer reviews. Bad reviews reduce repea
 - FR-1.2 Load them into a DuckDB database file `data/olist.duckdb`.
 - FR-1.3 Staging layer: correct types (timestamps), English category names, de-duplicated geolocation (one lat/long per zip prefix), cleaned text.
 - FR-1.4 Star schema: `fact_orders`, `fact_order_items`, `dim_customer`, `dim_seller`, `dim_product`, `dim_date`.
-- FR-1.5 10–12 business queries in `sql/03_business_queries.sql`, each with a comment stating the question and a one-line insight.
+- FR-1.5 10–12 business queries in `sql/04_business_queries.sql`, each with a comment stating the question and a one-line insight.
 
 ### FR-2 Data-quality audit and exploratory analysis
 - FR-2.0 Notebook `notebooks/00_data_quality_audit.ipynb` + `docs/DATA_QUALITY_REPORT.md`: for every table, missing values, duplicates (e.g. non-unique review_id), impossible date sequences, multi-seller orders, Portuguese categories, geolocation duplicates, column-name typos. For each issue: size (count/%), the decision (fix, drop, flag, keep) and the reason.

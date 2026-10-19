@@ -15,23 +15,13 @@ from pathlib import Path
 import duckdb
 
 ROOT = Path(__file__).resolve().parents[1]
-RAW_DIR = ROOT / "data" / "raw"
+sys.path.insert(0, str(ROOT))  # make the src package importable when run as a script
+
+from src.db import RAW_DIR, RAW_TABLES  # noqa: E402
+
 DB_PATH = ROOT / "data" / "olist.duckdb"
 SQL_DIR = ROOT / "sql"
 RISK_SCORES = ROOT / "models" / "order_risk_scores.parquet"
-
-# CSV file -> table name in the raw schema
-RAW_TABLES = {
-    "olist_customers_dataset.csv": "customers",
-    "olist_geolocation_dataset.csv": "geolocation",
-    "olist_order_items_dataset.csv": "order_items",
-    "olist_order_payments_dataset.csv": "order_payments",
-    "olist_order_reviews_dataset.csv": "order_reviews",
-    "olist_orders_dataset.csv": "orders",
-    "olist_products_dataset.csv": "products",
-    "olist_sellers_dataset.csv": "sellers",
-    "product_category_name_translation.csv": "category_translation",
-}
 
 # SQL files that build tables, run in order (business queries are run separately)
 BUILD_SQL = ["01_staging.sql", "02_star_schema.sql"]

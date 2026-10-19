@@ -1,7 +1,7 @@
 # Data-Quality Report
 
 **Dataset:** Olist Brazilian e-commerce (Kaggle `olistbr/brazilian-ecommerce`), 9 tables · **Audit date:** 2026-10-19
-**Produced by:** `notebooks/00_data_quality_audit.ipynb` → checks in `sql/04_data_quality_checks.sql` → full table in `sql/results/data_quality_audit.csv`.
+**Produced by:** `notebooks/00_data_quality_audit.ipynb` → checks in `sql/03_data_quality_checks.sql` → full table in `sql/results/data_quality_audit.csv`.
 Every number below comes from that run.
 
 ## 1. Summary

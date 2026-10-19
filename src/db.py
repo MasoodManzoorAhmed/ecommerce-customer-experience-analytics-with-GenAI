@@ -11,6 +11,20 @@ import duckdb
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "data" / "olist.duckdb"
 SQL_DIR = ROOT / "sql"
+RAW_DIR = ROOT / "data" / "raw"
+
+# Source CSV file -> table name in the raw schema (shared by build_db.py and the audit notebook)
+RAW_TABLES = {
+    "olist_customers_dataset.csv": "customers",
+    "olist_geolocation_dataset.csv": "geolocation",
+    "olist_order_items_dataset.csv": "order_items",
+    "olist_order_payments_dataset.csv": "order_payments",
+    "olist_order_reviews_dataset.csv": "order_reviews",
+    "olist_orders_dataset.csv": "orders",
+    "olist_products_dataset.csv": "products",
+    "olist_sellers_dataset.csv": "sellers",
+    "product_category_name_translation.csv": "category_translation",
+}
 
 NAME_MARKER = re.compile(r"^-- name:\s*(\S+)\s*$", re.MULTILINE)
 META_LINE = re.compile(r"^-- (table|issue|decision|action):\s*(.+?)\s*$", re.MULTILINE)

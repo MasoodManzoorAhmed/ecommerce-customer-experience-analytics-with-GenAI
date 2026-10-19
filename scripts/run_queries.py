@@ -1,4 +1,4 @@
-"""Run every named query in sql/03_business_queries.sql and save each result.
+"""Run every named query in sql/04_business_queries.sql and save each result.
 
 Queries are separated by "-- name: <query_name>" markers. Results are printed
 and written to sql/results/<query_name>.csv (small aggregates, committed as evidence).
@@ -24,7 +24,7 @@ OUT_DIR = ROOT / "sql" / "results"
 
 
 def main(prefixes: list[str]) -> int:
-    queries = {q.name: q.sql for q in load_named_sql("03_business_queries.sql")}
+    queries = {q.name: q.sql for q in load_named_sql("04_business_queries.sql")}
     if prefixes:
         queries = {n: q for n, q in queries.items() if n.startswith(tuple(prefixes))}
     OUT_DIR.mkdir(parents=True, exist_ok=True)

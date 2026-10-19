@@ -33,7 +33,7 @@ def test_parse_reads_metadata_lines():
 
 
 def test_every_quality_check_is_documented():
-    checks = load_named_sql("04_data_quality_checks.sql")
+    checks = load_named_sql("03_data_quality_checks.sql")
     assert len(checks) >= 40
     names = [c.name for c in checks]
     assert len(names) == len(set(names)), "duplicate check names"
@@ -43,5 +43,5 @@ def test_every_quality_check_is_documented():
 
 
 def test_business_queries_have_insights():
-    for query in load_named_sql("03_business_queries.sql"):
+    for query in load_named_sql("04_business_queries.sql"):
         assert "-- INSIGHT:" in query.sql and "INSIGHT: TBD" not in query.sql, query.name
