@@ -62,6 +62,9 @@ The download uses Kaggle's public endpoint, so no API key is needed. The databas
 **So nothing is silently changed on load. Every type conversion is explicit and reviewable in the staging SQL.**
 The concrete example is Brazilian zip prefixes like `01037`. Automatic type detection would read that as the integer 1037, and joins to the geolocation table would break.
 
+### 🟢 "Show me where you first looked at the data."
+**Section 0 of the data-quality audit notebook.** It lists the 9 tables (1,550,922 rows, 52 columns in total), profiles every column (an example value, number of distinct values, % missing), and shows sample rows from each table. The distinct counts are where the first problems show up: `customer_unique_id` has fewer values than `customer_id`, and `review_id` has fewer values than review rows.
+
 ### 🟡 "How did you verify the load was correct?"
 **I counted rows with two independent readers, DuckDB and pandas, and they matched for all 9 tables.** This matters for the reviews file, where 3,852 comments contain line breaks. A naive line count would give the wrong number of rows.
 
@@ -254,7 +257,7 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 
 ### 🟢 "How many features does your dataset have?"
 **Two answers: the raw data has 9 tables with 52 columns; my model uses 23 engineered features (19 numeric, 4 categorical), all known at purchase time.**
-Many raw columns are IDs for joining or describe the outcome (delivery dates, review scores), so they can't be features. The 23 fall into seven groups: promise and timing (promised_days, weekday, hour, holiday flag), geography (distance, same state, customer and seller state), basket (value, freight, freight ratio, items, sellers), product (weight, volume, category), checkout (payment method), seller history (90-day orders, deliveries, late rate, all-time late rate), and platform context (30-day late rate, volume ratio). The target, `is_late`, is the label, not a feature.
+(The raw overview, with every column profiled, is section 0 of `notebooks/00_data_quality_audit.ipynb`; the model features are listed in section 2 of `notebooks/02`.) Many raw columns are IDs for joining or describe the outcome (delivery dates, review scores), so they can't be features. The 23 fall into seven groups: promise and timing (promised_days, weekday, hour, holiday flag), geography (distance, same state, customer and seller state), basket (value, freight, freight ratio, items, sellers), product (weight, volume, category), checkout (payment method), seller history (90-day orders, deliveries, late rate, all-time late rate), and platform context (30-day late rate, volume ratio). The target, `is_late`, is the label, not a feature.
 
 ### 🟢 "What is data leakage? Give an example from your project."
 **Leakage is using information during training that wouldn't exist at prediction time. It makes test scores look great and the real model useless.** The obvious cases: delivery dates, delay days and review scores describe the outcome, so they're on a forbidden list, and a unit test fails if any of them appears in the features. The subtle case was seller history. "The seller's late rate from earlier orders" sounds safe, but an earlier order may still be *in transit* when the new one is placed, so its outcome isn't known yet. I count only orders **delivered before the purchase**, and a test with synthetic data proves an in-transit order is excluded.

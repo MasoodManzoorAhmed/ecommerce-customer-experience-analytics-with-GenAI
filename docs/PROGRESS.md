@@ -53,6 +53,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 
 | Date | Metric | Value | Source (notebook/script) |
 |---|---|---|---|
+| 2026-10-19 | Raw dataset size | 9 tables · 1,550,922 rows · 52 columns (all profiled: example, distinct count, missing %) | `00_data_quality_audit.ipynb` §0 (`src/data_quality.table_overview`, `column_profile`) |
 | 2026-10-19 | Raw row counts | orders 99,441 · order_items 112,650 · customers 99,441 · order_payments 103,886 · order_reviews 99,224 · products 32,951 · sellers 3,095 · geolocation 1,000,163 · category_translation 71 | `scripts/build_db.py` (matched by pandas) |
 | 2026-10-19 | Distinct customer_unique_id | 96,096 (vs 99,441 customer_id) | ad-hoc DuckDB check |
 | 2026-10-19 | Purchase timestamp range | 2016-09-04 21:15:19 → 2018-10-17 17:30:18 | ad-hoc DuckDB check |
@@ -124,6 +125,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Integer surrogate keys via ROW_NUMBER over natural id | Deterministic across rebuilds; compact Power BI relationships |
 | 2026-10-19 | Q01 trend limited to 2017-01..2018-08 | 2016 has only 267 delivered orders (Nov missing); late-2018 months truncated, so MoM % is meaningless there |
 | 2026-10-19 | Query results saved as CSV in `sql/results/` and committed | Every README number traceable to a file produced by code |
+| 2026-10-19 | Added 'Dataset overview' (§0) to the audit notebook | The first look at the data (tables, columns, sample rows) was only in session output; now it's reproducible in the repo |
 | 2026-10-19 | DQ check metadata (table/issue/decision/action) stored as comments beside each check SQL | Decision and measurement can't drift apart; a test fails if any check lacks metadata |
 | 2026-10-19 | `src/db.py` shared parser + read-only `connect()`; `run_queries.py` refactored to use it (q09 output unchanged) | One implementation, reused by scripts, notebooks and later the app |
 | 2026-10-19 | Reviews created before delivery kept (not flagged) | Genuine behaviour (5.19%); relevant to Module 2 'never_arrived'; reviews are never ML features |
