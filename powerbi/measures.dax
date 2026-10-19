@@ -1,0 +1,113 @@
+// =====================================================================
+// DAX measures for olist_cx_dashboard.pbix
+// Create each one with: select the _Measures table -> Home -> New measure -> paste.
+// Business definitions match fact_orders / genai semantic layer:
+//   delivered = is_delivered; late = is_late (delivered orders only);
+//   revenue   = sum of item price (no freight), delivered orders only.
+// Check every number against powerbi/expected_values.csv.
+// =====================================================================
+
+// ---------- Core KPIs ----------
+
+Delivered Orders =
+CALCULATE ( COUNTROWS ( fact_orders ), fact_orders[is_delivered] = TRUE () )
+// Format: Whole number, thousands separator
+
+Revenue =
+CALCULATE ( SUM ( fact_order_items[price] ), fact_orders[is_delivered] = TRUE () )
+// The filter on fact_orders flows to fact_order_items through the order_id relationship.
+// Format: Currency, R$ (Portuguese (Brazil)), 0 decimals
+
+AOV =
+DIVIDE (
+    [Revenue],
+    CALCULATE ( DISTINCTCOUNT ( fact_order_items[order_id] ), fact_orders[is_delivered] = TRUE () )
+)
+// Average order value. Counts orders through the items table so it stays correct
+// when a product or seller filter is applied. Format: Currency, 2 decimals
+
+Late Orders =
+CALCULATE ( [Delivered Orders], fact_orders[is_late] = TRUE () )
+
+On-time % =
+DIVIDE ( [Delivered Orders] - [Late Orders], [Delivered Orders] )
+// Format: Percentage, 2 decimals
+
+Avg Review =
+CALCULATE ( AVERAGE ( fact_orders[review_score] ), fact_orders[is_delivered] = TRUE () )
+// Format: Decimal, 2 decimals
+
+Avg Delivery Days =
+CALCULATE ( AVERAGE ( fact_orders[delivery_days] ), fact_orders[is_delivered] = TRUE () )
+
+Review Gap =
+CALCULATE ( [Avg Review], fact_orders[is_late] = FALSE () )
+    - CALCULATE ( [Avg Review], fact_orders[is_late] = TRUE () )
+// On-time average minus late average. [Avg Review] already keeps delivered orders only,
+// which matters because DAX treats BLANK as FALSE: is_late = FALSE() alone would also
+// match undelivered orders (is_late is blank for them).
+
+// ---------- Time intelligence (needs dim_date marked as date table) ----------
+
+Revenue MoM % =
+VAR CurrentRev = [Revenue]
+VAR PrevRev = CALCULATE ( [Revenue], DATEADD ( dim_date[date], -1, MONTH ) )
+RETURN DIVIDE ( CurrentRev - PrevRev, PrevRev )
+
+Revenue YoY % =
+VAR CurrentRev = [Revenue]
+VAR PrevYearRev = CALCULATE ( [Revenue], SAMEPERIODLASTYEAR ( dim_date[date] ) )
+RETURN DIVIDE ( CurrentRev - PrevYearRev, PrevYearRev )
+
+// ---------- Share, rank, Pareto ----------
+
+Revenue % of Total =
+DIVIDE ( [Revenue], CALCULATE ( [Revenue], ALLSELECTED () ) )
+// Share of whatever is selected on the page (respects slicers).
+
+Seller Revenue Rank =
+IF (
+    HASONEVALUE ( dim_seller[seller_id] ),
+    RANKX ( ALLSELECTED ( dim_seller[seller_id] ), [Revenue], , DESC, DENSE )
+)
+
+Category Cumulative % =
+VAR CurrentRev = [Revenue]
+VAR Cats =
+    ADDCOLUMNS ( ALLSELECTED ( dim_product[category_en] ), "@rev", [Revenue] )
+RETURN
+    DIVIDE ( SUMX ( FILTER ( Cats, [@rev] >= CurrentRev ), [@rev] ), SUMX ( Cats, [@rev] ) )
+// Running share of revenue from the biggest category down (the Pareto line).
+
+// ---------- Item-level measures (for product and seller visuals) ----------
+// Product and seller filters reach fact_order_items only, not fact_orders,
+// so order counts for categories/sellers are taken from the items table.
+
+Item-level Orders =
+CALCULATE ( DISTINCTCOUNT ( fact_order_items[order_id] ), fact_orders[is_delivered] = TRUE () )
+
+Item-level On-time % =
+VAR LateOrders =
+    CALCULATE ( DISTINCTCOUNT ( fact_order_items[order_id] ), fact_orders[is_late] = TRUE () )
+RETURN 1 - DIVIDE ( LateOrders, [Item-level Orders] )
+// An order counts for every category/seller in it (same rule as SQL q05/q06).
+
+Avg Review (via items) =
+CALCULATE (
+    [Avg Review],
+    CROSSFILTER ( fact_order_items[order_id], fact_orders[order_id], BOTH )
+)
+// Lets a category or seller filter flow back to fact_orders for this measure only,
+// instead of making the whole relationship two-way.
+
+// ---------- Late-delivery model ----------
+
+Avg Late Risk (test) =
+CALCULATE ( AVERAGE ( fact_orders[late_probability] ), fact_orders[model_split] = "test" )
+
+Late Rate (test) =
+DIVIDE (
+    CALCULATE ( [Late Orders], fact_orders[model_split] = "test" ),
+    CALCULATE ( [Delivered Orders], fact_orders[model_split] = "test" )
+)
+// Use only test-period scores in visuals: training-period scores are in-sample.

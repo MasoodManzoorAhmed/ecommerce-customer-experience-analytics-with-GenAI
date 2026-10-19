@@ -1,0 +1,23 @@
+check,where_to_look,dax_measure,expected_value,display
+Delivered Orders,"card, no filters",[Delivered Orders],96470.0,"96,470"
+Revenue,"card, no filters",[Revenue],13220248.93,"R$ 13,220,248.93"
+AOV,"card, no filters",[AOV],137.0400013475692,R$ 137.04
+Late Orders,"card, no filters",[Late Orders],6534.0,"6,534"
+On-time %,"card, no filters",[On-time %],0.9322690992018244,93.23%
+Avg Review,"card, no filters",[Avg Review],4.155879529136751,4.16
+Avg Delivery Days,"card, no filters",[Avg Delivery Days],12.558206903700452,12.56
+Review Gap (on-time - late),"card, no filters",[Review Gap],2.0198955371964127,2.02
+Revenue 2018-08,year_month = 2018-08,[Revenue],838576.64,"R$ 838,576.64"
+Revenue MoM % 2018-08,year_month = 2018-08,[Revenue MoM %],-0.033325972219485966,-3.33%
+Revenue YoY % 2018-08,year_month = 2018-08,[Revenue YoY %],0.5117668893637406,51.18%
+Revenue % of Total: SP customers,"bar by customer state, row SP",[Revenue % of Total],0.38338744503504596,38.34%
+On-time %: MA customers,"bar by customer state, row MA",[On-time %],0.8263888888888888,82.64%
+Revenue: health_beauty,"table by category, row health_beauty",[Revenue],1233131.72,"R$ 1,233,131.72"
+Category Cumulative %: 7th category,"Pareto by category, 7th row (housewares)",[Category Cumulative %],0.49872805307305207,49.87%
+Category On-time %: office_furniture,"table by category, row office_furniture",[Category On-time %],0.919457735247209,91.95%
+Seller Revenue Rank 1: revenue,"table by seller_id, rank 1 row",[Revenue],226987.93,"R$ 226,987.93"
+Avg Late Risk (test orders),"card, no filters",[Avg Late Risk (test)],0.03781311664074655,3.78%
+Actual Late Rate (test orders),"card, no filters",[Late Rate (test)],0.04419906687402799,4.42%
+"On-time %: test orders, risk_band = high","bar by risk_band (filter model_split = test), row high",[On-time %],0.90640674874601,90.64%
+"On-time %: test orders, risk_band = low","bar by risk_band (filter model_split = test), row low",[On-time %],0.9906311637080868,99.06%
+Avg Review (via items): health_beauty,"table by category, row health_beauty",[Avg Review (via items)],4.229275665620277,4.23

@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 3 complete; next: Day 4 Power BI (export star schema + fact_order_risk to Parquet)
+## Status: Day 4 in progress: data export, DAX measures and guide ready; owner builds the .pbix in Power BI Desktop
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -29,7 +29,10 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] `fact_order_risk` + `models/` artefacts (`late_delivery_model.pkl`, `metadata.json`, `order_risk_scores.parquet`; reloaded by `build_db.py`)
 
 ### Day 4: Power BI
-- [ ] 3 pages + measures + screenshots
+- [x] Export for Power BI: `sql/07_powerbi_export.sql` + `scripts/export_powerbi.py` → `data/powerbi/*.parquet` (6 tables, git-ignored)
+- [x] Expected values for reconciliation: `scripts/powerbi_expected_values.py` → `powerbi/expected_values.csv` (22 checks)
+- [x] 18 DAX measures (`powerbi/measures.dax`), theme (`powerbi/theme.json`), step-by-step guide (`powerbi/POWERBI_GUIDE.md`)
+- [ ] Build 3 pages + drill-through in Power BI Desktop; reconcile with expected_values.csv; save `.pbix` + screenshots
 
 ### Day 5: Excel + Module 1 (start)
 - [ ] `excel/Monthly_CX_Report.xlsx`
@@ -117,6 +120,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Test cost vs flag-nothing per model | rule 1.276 · logistic 1.541 · LightGBM 1.550 (none beats doing nothing under drift) | notebook 02 §8 |
 | 2026-10-19 | Logistic regression at default threshold 0.5 | flags 0 of 32,150 test orders (identical to Model 0) | notebook 02 §6 |
 | 2026-10-19 | Test ROC-AUC per model | rule 0.529 · logistic 0.727 · LightGBM 0.636 | notebook 02 §8 |
+| 2026-10-19 | Power BI export | dim_date 852 · dim_customer 96,096 · dim_seller 3,095 · dim_product 32,951 · fact_orders 99,441 · fact_order_items 112,650 rows | `scripts/export_powerbi.py` |
+| 2026-10-19 | Power BI expected values (from Parquet) | Delivered 96,470 · Revenue R$ 13,220,248.93 · AOV R$ 137.04 · On-time 93.23% · Avg review 4.16 · MoM Aug-2018 −3.33% · YoY Aug-2018 +51.18% · test risk band on-time: high 90.64%, low 99.06% | `powerbi/expected_values.csv` |
 
 ## Decisions log
 
@@ -144,6 +149,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Added rule baseline, paired bootstrap CI and error analysis to notebook 02 | Show the model beats a simple rule and the gaps aren't noise; locate where it fails |
 | 2026-10-19 | Notebook 02 restructured: one section per model (0 always on-time, 1 rule, 2 logistic, 3 LightGBM), each with classification_report + confusion matrix, then a comparison section | Reviewers expect per-model reports; presentation borrowed from the owner's Telco churn project, methodology kept (validation selection, cost threshold, CIs) |
 | 2026-10-19 | Accuracy reported but not used for selection | Do-nothing model scores 0.956 accuracy with zero recall; selection stays on validation PR-AUC |
+| 2026-10-19 | Power BI fed by Parquet exports (no native DuckDB connector); model scores merged into fact_orders export | Types preserved; simpler model for report users |
+| 2026-10-19 | Power BI model: header→lines (fact_orders 1→* fact_order_items), all single-direction; CROSSFILTER only inside [Avg Review (via items)] | Avoid ambiguous bi-directional paths; product/seller visuals use item-level measures |
+| 2026-10-19 | Every DAX measure has an SQL-computed expected value | Reconciliation catches modelling/DAX mistakes |
 | 2026-10-19 | Added 'Dataset overview' (§0) to the audit notebook | The first look at the data (tables, columns, sample rows) was only in session output; now it's reproducible in the repo |
 | 2026-10-19 | DQ check metadata (table/issue/decision/action) stored as comments beside each check SQL | Decision and measurement can't drift apart; a test fails if any check lacks metadata |
 | 2026-10-19 | `src/db.py` shared parser + read-only `connect()`; `run_queries.py` refactored to use it (q09 output unchanged) | One implementation, reused by scripts, notebooks and later the app |

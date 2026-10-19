@@ -6,7 +6,7 @@ A living document: add a section at the end of every work day. **Every number he
 - 🟢 = asked in almost every interview · 🟡 = common follow-up · 🔴 = hard / senior-level probe
 - The bold first sentence of each answer is the 10-second version. The rest is there if they dig.
 
-**Contents:** 1. The pitch · 2. Dataset & business question · 3. Environment & reproducibility · 4. Loading the data · 5. Staging layer · 6. Star schema · 7. Business queries (SQL) · 8. Insights & recommendations · 9. Judgement & behavioural · 9b. Data-quality audit · 9c. EDA & statistics · 9d. ML model · 10. Coming next (questions to prepare later) · 11. Number cheat-sheet
+**Contents:** 1. The pitch · 2. Dataset & business question · 3. Environment & reproducibility · 4. Loading the data · 5. Staging layer · 6. Star schema · 7. Business queries (SQL) · 8. Insights & recommendations · 9. Judgement & behavioural · 9b. Data-quality audit · 9c. EDA & statistics · 9d. ML model · 9e. Power BI · 10. Coming next (questions to prepare later) · 11. Number cheat-sheet
 
 ---
 
@@ -321,6 +321,31 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 
 ---
 
+## 9e. Power BI (Day 4)
+
+### 🟢 "How did you get the data into Power BI?"
+**I exported the star schema from DuckDB to Parquet with a script and loaded the 6 files.** Power BI has no native DuckDB connector, and Parquet keeps column types (dates, decimals, true/false), whereas CSV makes Power BI guess. The export is reproducible: one command regenerates the files.
+
+### 🟢 "Describe your data model."
+**A star: dates and customers filter the orders table; products and sellers filter the order-lines table; orders filter their own lines.** Every relationship is many-to-one and single-direction. Where I needed the reverse direction (average review for a product category), I used `CROSSFILTER` inside that one measure instead of making the relationship two-way, which avoids ambiguous filter paths.
+
+### 🟢 "What's the difference between a calculated column and a measure?"
+**A calculated column is computed once per row at refresh and stored; a measure is computed at query time for whatever is filtered.** On-time % must be a measure: it has to change when someone selects a state or a month. `delay_bucket` is a fixed property of each order, so it's a column (I created it in SQL).
+
+### 🟡 "Explain a DAX measure you wrote."
+**Month-on-month revenue:** a variable holds this month's `[Revenue]`, another holds `CALCULATE([Revenue], DATEADD(dim_date[date], -1, MONTH))`, and `DIVIDE` returns the change while avoiding division by zero. It only works because `dim_date` is marked as the date table. Another one: `Seller Revenue Rank` uses `RANKX` over `ALLSELECTED(dim_seller[seller_id])`, so the ranking respects the page's slicers.
+
+### 🔴 "Any DAX pitfalls you ran into?"
+**BLANK equals FALSE in DAX.** Undelivered orders have a blank `is_late`, so a filter `is_late = FALSE()` would silently include them. My `Review Gap` measure is built on `[Avg Review]`, which already keeps delivered orders only. A second one: product and seller filters reach only the order-lines table, so counting orders per category needs `DISTINCTCOUNT` over the lines table (the "item-level" measures), not a count of the orders table.
+
+### 🟢 "How do you know your dashboard numbers are right?"
+**Reconciliation.** Before building it, I computed 22 expected values with SQL from the same exported files (total revenue, on-time %, MoM and YoY for August 2018, a state, a category, a seller rank, risk-band rates) using the same logic as each DAX measure. Every visual is checked against that table.
+
+### 🟡 "What does the model page show?"
+**Test-period orders only, grouped by risk band:** high-risk orders were on time 90.64% of the time and low-risk orders 99.06%, so late orders are about 10× more common in the high band. Training-period scores are excluded because they're in-sample.
+
+---
+
 ## 10. Coming next: questions to prepare later
 
 Fill these in as each part is built, using real results only.
@@ -331,9 +356,7 @@ Fill these in as each part is built, using real results only.
 **Day 3: Machine learning**
 - *(Answered in section 9d.)*
 
-**Day 4–5: Power BI and Excel**
-- Explain a DAX measure you wrote. What's the difference between a calculated column and a measure?
-- Why do you need a marked date table?
+**Day 5: Excel**
 - How does your what-if sheet work?
 
 **Days 5–6: GenAI Module 1 (text-to-SQL)**
