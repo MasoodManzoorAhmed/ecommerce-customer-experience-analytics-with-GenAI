@@ -75,7 +75,8 @@
   "valid_metrics": {
     "pr_auc": 0.2840207877684837,
     "roc_auc": 0.725601873988534,
-    "base_rate": 0.12881175158772482
+    "base_rate": 0.12881175158772482,
+    "pr_auc_lift": 2.2049291642079467
   },
   "test_metrics": {
     "pr_auc": 0.0943343320615055,
@@ -95,9 +96,51 @@
     "cost_flag_none": 7105.0,
     "cost_flag_all": 30729.0
   },
-  "lightgbm_comparison": {
-    "valid_pr_auc": 0.212975017814089,
-    "test_pr_auc": 0.07250882067459354
+  "model_comparison_test": {
+    "Model 0: always on time": {
+      "valid_pr_auc": 0.1288,
+      "test_pr_auc": 0.0442,
+      "test_roc_auc": 0.5,
+      "accuracy": 0.9558,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "flagged_pct": 0.0,
+      "cost_vs_flag_none": 1.0
+    },
+    "Model 1: rule (distance_km)": {
+      "valid_pr_auc": 0.174,
+      "test_pr_auc": 0.0588,
+      "test_roc_auc": 0.5288,
+      "accuracy": 0.853,
+      "precision": 0.0843,
+      "recall": 0.2357,
+      "f1": 0.1242,
+      "flagged_pct": 12.3608,
+      "cost_vs_flag_none": 1.2764
+    },
+    "Model 2: logistic regression": {
+      "valid_pr_auc": 0.284,
+      "test_pr_auc": 0.0943,
+      "test_roc_auc": 0.7268,
+      "accuracy": 0.734,
+      "precision": 0.0936,
+      "recall": 0.5778,
+      "f1": 0.1611,
+      "flagged_pct": 27.2846,
+      "cost_vs_flag_none": 1.5413
+    },
+    "Model 3: LightGBM": {
+      "valid_pr_auc": 0.213,
+      "test_pr_auc": 0.0725,
+      "test_roc_auc": 0.6355,
+      "accuracy": 0.7641,
+      "precision": 0.0774,
+      "recall": 0.3969,
+      "f1": 0.1295,
+      "flagged_pct": 22.675,
+      "cost_vs_flag_none": 1.5498
+    }
   },
   "seed": 42
 }

@@ -113,6 +113,10 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Error analysis by month (test) | PR-AUC 0.181 (Apr) · 0.151 (May) · 0.058 (Jun, late rate 1.2%, precision 3.7%) · 0.075 (Jul) · 0.089 (Aug) | notebook 02 §6 |
 | 2026-10-19 | Error analysis by state (recall at threshold) | PE 87.8% · CE 84.4% · BA 79.8% · RJ 79.1% … MG 18.3% · RS 27.5% · PR 29.5% | notebook 02 §6 |
 | 2026-10-19 | Missed vs caught late orders (medians) | distance 319 vs 667 km; market late rate 9.6% vs 4.9% (1,421 late: 821 caught, 600 missed) | notebook 02 §6 |
+| 2026-10-19 | Test classification metrics per model (threshold chosen on valid, 5:1) | Model 0 always on-time: acc 0.956, P/R/F1 0 · Model 1 rule (distance > ~1,161 km): acc 0.853, P 0.084, R 0.236, F1 0.124 · Model 2 logistic: acc 0.734, P 0.094, R 0.578, F1 0.161 · Model 3 LightGBM: acc 0.764, P 0.077, R 0.397, F1 0.130 | notebook 02 §4-§8 |
+| 2026-10-19 | Test cost vs flag-nothing per model | rule 1.276 · logistic 1.541 · LightGBM 1.550 (none beats doing nothing under drift) | notebook 02 §8 |
+| 2026-10-19 | Logistic regression at default threshold 0.5 | flags 0 of 32,150 test orders (identical to Model 0) | notebook 02 §6 |
+| 2026-10-19 | Test ROC-AUC per model | rule 0.529 · logistic 0.727 · LightGBM 0.636 | notebook 02 §8 |
 
 ## Decisions log
 
@@ -138,6 +142,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | README walkthrough order = first look → clean (01/02) → audit (03) | `03_data_quality_checks.sql` reads the cleaned tables (47 references), so it runs after the build; it sizes raw issues and verifies the fixes |
 | 2026-10-19 | Added fresh-build SQL test (skips without raw data) | PRD acceptance criterion "queries run cleanly from a fresh build" is now automated |
 | 2026-10-19 | Added rule baseline, paired bootstrap CI and error analysis to notebook 02 | Show the model beats a simple rule and the gaps aren't noise; locate where it fails |
+| 2026-10-19 | Notebook 02 restructured: one section per model (0 always on-time, 1 rule, 2 logistic, 3 LightGBM), each with classification_report + confusion matrix, then a comparison section | Reviewers expect per-model reports; presentation borrowed from the owner's Telco churn project, methodology kept (validation selection, cost threshold, CIs) |
+| 2026-10-19 | Accuracy reported but not used for selection | Do-nothing model scores 0.956 accuracy with zero recall; selection stays on validation PR-AUC |
 | 2026-10-19 | Added 'Dataset overview' (§0) to the audit notebook | The first look at the data (tables, columns, sample rows) was only in session output; now it's reproducible in the repo |
 | 2026-10-19 | DQ check metadata (table/issue/decision/action) stored as comments beside each check SQL | Decision and measurement can't drift apart; a test fails if any check lacks metadata |
 | 2026-10-19 | `src/db.py` shared parser + read-only `connect()`; `run_queries.py` refactored to use it (q09 output unchanged) | One implementation, reused by scripts, notebooks and later the app |

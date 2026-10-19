@@ -13,7 +13,14 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 
@@ -311,3 +318,30 @@ def segment_metrics(
             }
         )
     return pd.DataFrame(rows).set_index("segment")
+
+
+def classification_summary(
+    y: np.ndarray, p: np.ndarray, threshold: float, cost_fn: float = 5.0, cost_fp: float = 1.0
+) -> dict[str, float]:
+    """Threshold-based metrics for one model: accuracy, precision, recall, F1 and business cost.
+
+    precision / F1 are 0 (not an error) when the model flags nothing, e.g. "always on time".
+    """
+    flag = (p >= threshold).astype(int)
+    tp = int(((flag == 1) & (y == 1)).sum())
+    fp = int(((flag == 1) & (y == 0)).sum())
+    fn = int(((flag == 0) & (y == 1)).sum())
+    tn = int(((flag == 0) & (y == 0)).sum())
+    cost = cost_fn * fn + cost_fp * fp
+    return {
+        "accuracy": accuracy_score(y, flag),
+        "precision": precision_score(y, flag, zero_division=0),
+        "recall": recall_score(y, flag, zero_division=0),
+        "f1": f1_score(y, flag, zero_division=0),
+        "flagged_pct": 100 * flag.mean(),
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+        "tn": tn,
+        "cost_vs_flag_none": cost / (cost_fn * (tp + fn)) if tp + fn else float("nan"),
+    }

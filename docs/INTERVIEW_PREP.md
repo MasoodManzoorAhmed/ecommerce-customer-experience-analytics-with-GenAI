@@ -292,6 +292,15 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 ### 🟡 "What is SHAP, and how did you compute it?"
 **SHAP splits a single prediction into contributions from each feature, so they add up to the prediction.** For a linear model it's exact: contribution = coefficient × (feature value − training average), in log-odds. I implemented that, cross-checked it against the `shap` library (identical, max difference 0.00), and checked that the contributions plus the baseline reproduce the model's output (error 2.66e-15). One-hot columns are summed back so each original feature gets one number.
 
+### 🟢 "What's your model's accuracy? Show me the classification report."
+**Each model has its own section with a full classification report and confusion matrix; accuracy is in there, but I don't use it to choose.** On the test period: the do-nothing model ("never late") has the **highest** accuracy, 95.6%, and catches zero late orders. Logistic regression has 73.4% accuracy but the best late-class results: precision 9.4%, recall 57.8%, F1 0.161. So accuracy ranks the models backwards here; I use PR-AUC and late-class F1, and I show accuracy precisely to make that point.
+
+### 🟡 "Why not just use the default 0.5 threshold?"
+**Because at 0.5 my model flags nothing.** No test order's predicted probability reaches 0.5 when only ~4–6% of orders are late, so at 0.5 the model is identical to "never late". The threshold has to come from business costs: I minimise 5·missed + 1·false alarm on validation, which gives 0.045.
+
+### 🔴 "How is this project better than your previous ML work?"
+**In my Telco churn project I compared four models with classification reports, which made the results easy to read. This time I kept that presentation and fixed the methodology.** (1) Models are chosen on a separate validation set; in Telco I compared on the test set. (2) Tuning comes before saving; in Telco the saved model was saved before tuning. (3) Imbalance is handled without resampling across CV folds; in Telco, SMOTE ran before cross-validation, which inflates CV scores. (4) The threshold comes from business costs rather than 0.5. (5) I add a do-nothing baseline, a simple-rule baseline, bootstrap confidence intervals, leakage tests and an error analysis. The same model-comparison skills, applied more rigorously.
+
 ### 🔴 "Does your model beat a simple business rule?"
 **Yes, and I tested it the same way as the models.** I built one-feature rules (e.g. "the farther the seller, the riskier"), learned each rule's direction on training data, and picked the best on validation: distance, with test PR-AUC 0.059. The model scores 0.094, and a paired bootstrap gives a difference CI of −0.043 to −0.029 for the rule, so the gap isn't luck. If a simple rule had won, I'd have recommended the rule.
 
@@ -382,3 +391,5 @@ Fill these in as each part is built, using real results only.
 | Test PR-AUC 95% CI | 0.094 [0.087, 0.104] (paired bootstrap) | notebook 02 |
 | Best simple rule | distance_km, test PR-AUC 0.059 (model beats it) | notebook 02 |
 | Recall by state at threshold | MG 18.3% … PE 87.8% | notebook 02 |
+| Test accuracy / F1 (late) per model | always on-time 0.956 / 0 · rule 0.853 / 0.124 · logistic 0.734 / 0.161 · LightGBM 0.764 / 0.130 | notebook 02 §8 |
+| Logistic at threshold 0.5 | flags 0 of 32,150 test orders | notebook 02 §6 |

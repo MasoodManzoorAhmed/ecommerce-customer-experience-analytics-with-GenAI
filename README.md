@@ -17,7 +17,7 @@
 |---|---|
 | Late deliveries vs reviews | Late orders average **2.27 ★** vs **4.29 ★** for on-time orders (Mann-Whitney p < 1e-300, effect size r = −0.64) |
 | Worst delivery performance | On-time rate ranges from **82.64%** (Maranhão) to **95.96%** (Paraná); overall 93.23% |
-| Late-delivery model | Test PR-AUC **0.094** [95% CI 0.087–0.104] vs 0.044 random; beats LightGBM (0.073) and the best simple rule (0.059). The riskiest 1% of orders are late **14.0%** of the time (3.2× average) |
+| Late-delivery model | Test PR-AUC **0.094** [95% CI 0.087–0.104] vs 0.044 random; beats LightGBM (0.073) and the best simple rule (0.059); late-class F1 0.161 vs 0.130 / 0.124. The riskiest 1% of orders are late **14.0%** of the time (3.2× average) |
 | "Ask the data" assistant | Execution accuracy **_% → _%** across improvement steps (40-question benchmark) |
 | Review complaint themes | Macro-F1: TF-IDF _ · LoRA _ · zero-shot LLM _ |
 | Recommendation | _ |
