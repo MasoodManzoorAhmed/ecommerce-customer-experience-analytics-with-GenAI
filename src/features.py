@@ -193,3 +193,50 @@ def load_model_table() -> pd.DataFrame:
     table = build_features(orders, events)
     table["split"] = time_split(table["purchase_ts"])
     return table
+
+
+def feature_checks(table: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Data checks on the model table before any modelling.
+
+    Returns:
+      missing    - % missing per feature and split (only features with any missing value)
+      duplicates - duplicate order_ids, and rows identical on every feature + target
+      infinite   - count of +/-inf values per numeric feature (should be 0)
+      outliers   - training-set skew, 1st/99th percentiles and % of rows beyond 3 x IQR
+    """
+    missing = table.groupby("split")[FEATURES].apply(lambda d: d.isna().mean() * 100).T
+    splits = [c for c in ("train", "valid", "test") if c in missing.columns]
+    missing = missing.loc[missing.sum(axis=1) > 0, splits]
+    duplicates = pd.DataFrame(
+        {
+            "check": [
+                "duplicate order_id",
+                "identical rows (all features + target, different orders)",
+            ],
+            "rows": [
+                int(table["order_id"].duplicated().sum()),
+                int(table[[*FEATURES, TARGET]].duplicated().sum()),
+            ],
+        }
+    )
+    num = table[NUMERIC_FEATURES].astype(float)
+    infinite = pd.DataFrame({"inf_values": np.isinf(num).sum()})
+    train = num[table["split"] == "train"]
+    q1, q3 = train.quantile(0.25), train.quantile(0.75)
+    iqr = q3 - q1
+    outliers = pd.DataFrame(
+        {
+            "skew": train.skew(),
+            "p01": train.quantile(0.01),
+            "median": train.median(),
+            "p99": train.quantile(0.99),
+            "max": train.max(),
+            "pct_beyond_3iqr": ((train > q3 + 3 * iqr) | (train < q1 - 3 * iqr)).mean() * 100,
+        }
+    ).sort_values("skew", ascending=False)
+    return {
+        "missing": missing,
+        "duplicates": duplicates,
+        "infinite": infinite,
+        "outliers": outliers,
+    }

@@ -111,17 +111,25 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Mean predicted vs actual late rate | test 3.78% vs 4.42%; valid 3.42% vs 12.88% | `fact_order_risk` check |
 | 2026-10-19 | fact_order_risk | 96,203 scored orders (test: high 8,772 · medium 13,238 · low 10,140) | §7 |
 | 2026-10-19 | Fresh-build SQL test | temp DB from raw CSVs; all named queries in 03/04/05/06 return rows (5 tests) | `tests/test_sql_build.py` |
-| 2026-10-19 | Best one-feature rule (chosen on valid) | distance_km (farther = riskier): valid PR-AUC 0.174, test 0.059 | notebook 02 §3b/§4b |
-| 2026-10-19 | **Test PR-AUC 95% CI (paired bootstrap, 1,000, seed 42)** | logistic 0.094 [0.087, 0.104]; vs LightGBM diff [−0.029, −0.016]; vs rule diff [−0.043, −0.029] | notebook 02 §4b |
-| 2026-10-19 | Error analysis by month (test) | PR-AUC 0.181 (Apr) · 0.151 (May) · 0.058 (Jun, late rate 1.2%, precision 3.7%) · 0.075 (Jul) · 0.089 (Aug) | notebook 02 §6 |
-| 2026-10-19 | Error analysis by state (recall at threshold) | PE 87.8% · CE 84.4% · BA 79.8% · RJ 79.1% … MG 18.3% · RS 27.5% · PR 29.5% | notebook 02 §6 |
-| 2026-10-19 | Missed vs caught late orders (medians) | distance 319 vs 667 km; market late rate 9.6% vs 4.9% (1,421 late: 821 caught, 600 missed) | notebook 02 §6 |
-| 2026-10-19 | Test classification metrics per model (threshold chosen on valid, 5:1) | Model 0 always on-time: acc 0.956, P/R/F1 0 · Model 1 rule (distance > ~1,161 km): acc 0.853, P 0.084, R 0.236, F1 0.124 · Model 2 logistic: acc 0.734, P 0.094, R 0.578, F1 0.161 · Model 3 LightGBM: acc 0.764, P 0.077, R 0.397, F1 0.130 | notebook 02 §4-§8 |
-| 2026-10-19 | Test cost vs flag-nothing per model | rule 1.276 · logistic 1.541 · LightGBM 1.550 (none beats doing nothing under drift) | notebook 02 §8 |
-| 2026-10-19 | Logistic regression at default threshold 0.5 | flags 0 of 32,150 test orders (identical to Model 0) | notebook 02 §6 |
-| 2026-10-19 | Test ROC-AUC per model | rule 0.529 · logistic 0.727 · LightGBM 0.636 | notebook 02 §8 |
+| 2026-10-19 | Best one-feature rule (chosen on valid) | distance_km (farther = riskier): valid PR-AUC 0.174, test 0.059 | notebook 02 §6, §9b |
+| 2026-10-19 | **Test PR-AUC 95% CI (paired bootstrap, 1,000, seed 42)** | logistic 0.094 [0.087, 0.104]; vs LightGBM diff [−0.029, −0.016]; vs rule diff [−0.043, −0.029] | notebook 02 §9b |
+| 2026-10-19 | Error analysis by month (test) | PR-AUC 0.181 (Apr) · 0.151 (May) · 0.058 (Jun, late rate 1.2%, precision 3.7%) · 0.075 (Jul) · 0.089 (Aug) | notebook 02 §12 |
+| 2026-10-19 | Error analysis by state (recall at threshold) | PE 87.8% · CE 84.4% · BA 79.8% · RJ 79.1% … MG 18.3% · RS 27.5% · PR 29.5% | notebook 02 §12 |
+| 2026-10-19 | Missed vs caught late orders (medians) | distance 319 vs 667 km; market late rate 9.6% vs 4.9% (1,421 late: 821 caught, 600 missed) | notebook 02 §12 |
+| 2026-10-19 | Test classification metrics per model (threshold chosen on valid, 5:1) | Model 0 always on-time: acc 0.956, P/R/F1 0 · Model 1 rule (distance > ~1,161 km): acc 0.853, P 0.084, R 0.236, F1 0.124 · Model 2 logistic: acc 0.734, P 0.094, R 0.578, F1 0.161 · Model 3 LightGBM: acc 0.764, P 0.077, R 0.397, F1 0.130 | notebook 02 §5-§9 |
+| 2026-10-19 | Test cost vs flag-nothing per model | rule 1.276 · logistic 1.541 · LightGBM 1.550 (none beats doing nothing under drift) | notebook 02 §9 |
+| 2026-10-19 | Logistic regression at default threshold 0.5 | flags 0 of 32,150 test orders (identical to Model 0) | notebook 02 §7 |
+| 2026-10-19 | Test ROC-AUC per model | rule 0.529 · logistic 0.727 · LightGBM 0.636 | notebook 02 §9 |
 | 2026-10-19 | Power BI export | dim_date 852 · dim_customer 96,096 · dim_seller 3,095 · dim_product 32,951 · fact_orders 99,441 · fact_order_items 112,650 rows | `scripts/export_powerbi.py` |
 | 2026-10-19 | Power BI expected values (from Parquet) | Delivered 96,470 · Revenue R$ 13,220,248.93 · AOV R$ 137.04 · On-time 93.23% · Avg review 4.16 · MoM Aug-2018 −3.33% · YoY Aug-2018 +51.18% · test risk band on-time: high 90.64%, low 99.06% | `powerbi/expected_values.csv` |
+| 2026-10-19 | Model-table data checks | 96,203 rows; 0 duplicate order_ids (28 identical-feature rows are distinct orders); 5 of 23 features with missing values (train: seller_late_rate_90d 7.22%, seller_prior_late_rate 6.43%, distance_km 0.51%, weight/volume 0.04%); 0 infinite; none constant | notebook 02 §3 |
+| 2026-10-19 | Missing-value fix proof | 6,182 missing (train, numeric) → 0 after preprocessing; 5 "was missing" indicators; 112 model inputs | notebook 02 §3.7 |
+| 2026-10-19 | Skew / outliers (train) | skew: order_value 12.13, n_sellers 10.35, freight_value 8.81 …; kept as real orders | notebook 02 §3.5 |
+| 2026-10-19 | Correlated features (train) | seller_orders_90d ~ seller_delivered_90d r = 0.989; late-rate pair 0.864; weight ~ volume 0.819 | notebook 02 §3.6 |
+| 2026-10-19 | Log-transform test (valid PR-AUC) | best with log 0.273 vs without 0.284 → not used | notebook 02 §7 |
+| 2026-10-19 | **Overfitting check (ROC-AUC train / valid / test)** | logistic 0.733 / 0.726 / 0.727 (no overfitting) · LightGBM 0.770 / 0.637 / 0.636 (overfits) | notebook 02 §10 |
+| 2026-10-19 | Learning curve (logistic, train vs valid ROC-AUC) | 10% data: 0.740 vs 0.639 → 100%: 0.733 vs 0.726; valid plateaus from ~40% | notebook 02 §10 |
+| 2026-10-19 | Calibration (test, by tenth) | top tenth predicted 10.1% vs actual 10.5%; lowest 1.0% vs 0.4%; 9th tenth 6.0% vs 9.8%; Brier 0.041 | notebook 02 §10 |
 
 ## Decisions log
 
@@ -148,6 +156,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Added fresh-build SQL test (skips without raw data) | PRD acceptance criterion "queries run cleanly from a fresh build" is now automated |
 | 2026-10-19 | Added rule baseline, paired bootstrap CI and error analysis to notebook 02 | Show the model beats a simple rule and the gaps aren't noise; locate where it fails |
 | 2026-10-19 | Notebook 02 restructured: one section per model (0 always on-time, 1 rule, 2 logistic, 3 LightGBM), each with classification_report + confusion matrix, then a comparison section | Reviewers expect per-model reports; presentation borrowed from the owner's Telco churn project, methodology kept (validation selection, cost threshold, CIs) |
+| 2026-10-19 | Notebook 02 §3 (model data checks) and §10 (diagnostics) added; log transform added as a tuning option | Show missing/duplicate/outlier handling and over/underfitting evidence explicitly; log option kept only if validation improves (it didn't) |
+| 2026-10-19 | Corrected interpretation: seller_orders_90d vs seller_delivered_90d opposite signs = collinearity (r = 0.989), not a 'backlog' signal | Read correlated pairs together in SHAP |
 | 2026-10-19 | Accuracy reported but not used for selection | Do-nothing model scores 0.956 accuracy with zero recall; selection stays on validation PR-AUC |
 | 2026-10-19 | Power BI fed by Parquet exports (no native DuckDB connector); model scores merged into fact_orders export | Types preserved; simpler model for report users |
 | 2026-10-19 | Power BI model: header→lines (fact_orders 1→* fact_order_items), all single-direction; CROSSFILTER only inside [Avg Review (via items)] | Avoid ambiguous bi-directional paths; product/seller visuals use item-level measures |

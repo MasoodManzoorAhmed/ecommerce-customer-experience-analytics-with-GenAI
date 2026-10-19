@@ -258,6 +258,21 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 ### 🟢 "Walk me through your model."
 **I predict, at the moment of purchase, whether an order will arrive after its estimated date.** 23 features, all known at checkout: the promised delivery time, distance and states, basket size and weight, payment method, the seller's recent track record, and platform-wide context. Time-based split: train on 2017, tune on Jan–Mar 2018, test once on Apr–Aug 2018. I compared logistic regression with LightGBM. **Logistic regression won** (test PR-AUC 0.094 vs 0.073, against a 0.044 base rate), so it's the production model. I explain every prediction with SHAP.
 
+### 🟢 "How did you handle missing values and duplicates in your model data?"
+**I checked the final model table before modelling: 0 duplicate orders, no infinite values, and 5 of 23 features with some missing values.** The biggest is the seller's recent late rate (7.2% missing in training), and it's missing for a reason: new sellers have no delivered orders yet, so the rate is *unknown*, not 0%. For logistic regression I fill missing values with the **training** median and add a 0/1 "was missing" column, so the model can still learn "this is a new seller". The cell after the fix proves it: 6,182 missing values before preprocessing, 0 after. LightGBM handles missing values natively. Nothing is filled in SQL, and the fill values are learned from training data only, so there's no leakage. (28 rows look identical but are different orders, so they stay.)
+
+### 🟢 "Did you check for outliers?"
+**Yes. Several features are heavily skewed** (order value has a skew of 12: median R$85, max R$13,440), **but they're real orders**, not errors; the impossible values were already fixed in the audit. So I kept them. For logistic regression, which is sensitive to extreme values, I **tested** a log transform as a tuning option. It scored lower on validation (0.273 vs 0.284), so I didn't use it. Tree models like LightGBM aren't affected by outliers.
+
+### 🔴 "Is your model overfitting or underfitting?"
+**I compared train, validation and test with ROC-AUC,** which doesn't move with the late rate (unlike PR-AUC). Logistic regression: 0.733 / 0.726 / 0.727, so **no overfitting**, and the learning curve gap closes from 0.10 to 0.008 as data grows. But even on training data it only reaches 0.733, and more data barely helps: that's **mild underfitting caused by limited information** at purchase time, not by too simple a model, since LightGBM didn't do better. LightGBM itself **does overfit**: 0.770 on train vs 0.636 on test, despite early stopping.
+
+### 🟡 "Are your predicted probabilities reliable?"
+**Roughly. I checked calibration on test by splitting orders into tenths by predicted risk.** The riskiest tenth is predicted at 10.1% and is actually 10.5% late; the model is slightly too high for the safest orders and too low in the 7th–9th tenths (6.0% vs 9.8%). Brier score 0.041. Good enough for risk bands; a recalibration step on recent data would sharpen it.
+
+### 🟡 "Any correlated features?"
+**Yes: seller orders vs deliveries in the last 90 days (r = 0.989), the two seller late rates (0.864), and weight vs volume (0.819).** Correlation doesn't hurt predictions much, and regularisation handles it, but it makes individual coefficients unreliable, so I interpret those pairs together.
+
 ### 🟢 "How many features does your dataset have?"
 **Two answers: the raw data has 9 tables with 52 columns; my model uses 23 engineered features (19 numeric, 4 categorical), all known at purchase time.**
 (The raw overview, with every column profiled, is section 0 of `notebooks/00_data_quality_audit.ipynb`; the model features are listed in section 2 of `notebooks/02`.) Many raw columns are IDs for joining or describe the outcome (delivery dates, review scores), so they can't be features. The 23 fall into seven groups: promise and timing (promised_days, weekday, hour, holiday flag), geography (distance, same state, customer and seller state), basket (value, freight, freight ratio, items, sellers), product (weight, volume, category), checkout (payment method), seller history (90-day orders, deliveries, late rate, all-time late rate), and platform context (30-day late rate, volume ratio). The target, `is_late`, is the label, not a feature.
@@ -287,7 +302,7 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 **No, and I report that.** On validation it cost 0.745× of doing nothing. On test, where the late rate fell from 12.88% to 4.42%, the same threshold flagged 27.3% of orders at 9.4% precision and cost 1.54× *more* than flagging nothing. At 5:1, a flag only pays off above about 17% precision, and even the riskiest 1% of test orders reach only 14.0%. The ranking still works (2.1–3.2× lift), but **a fixed threshold doesn't survive a three-fold change in the base rate.** In production I'd re-set it monthly on the latest labelled month, or use the model as a top-k priority list for cheap actions.
 
 ### 🟢 "What drives late-delivery risk according to your model?"
-**From SHAP:** promised delivery days (a longer estimate means less risk, because padded promises are easier to keep), seller-to-customer distance (farther means more risk), customer state, same-state shipping (less risk), and recent platform and seller history. Seller orders vs seller deliveries in the last 90 days point in opposite directions, so together they act like a backlog signal.
+**From SHAP:** promised delivery days (a longer estimate means less risk, because padded promises are easier to keep), seller-to-customer distance (farther means more risk), customer state, same-state shipping (less risk), and recent platform and seller history. Seller orders and seller deliveries in the last 90 days point in opposite directions, but they're 99% correlated (r = 0.989), so that's **collinearity**: the linear model splits one signal into two opposite weights. I read such pairs together, never one by one.
 
 ### 🟡 "What is SHAP, and how did you compute it?"
 **SHAP splits a single prediction into contributions from each feature, so they add up to the prediction.** For a linear model it's exact: contribution = coefficient × (feature value − training average), in log-odds. I implemented that, cross-checked it against the `shap` library (identical, max difference 0.00), and checked that the contributions plus the baseline reproduce the model's output (error 2.66e-15). One-hot columns are summed back so each original feature gets one number.
@@ -414,5 +429,9 @@ Fill these in as each part is built, using real results only.
 | Test PR-AUC 95% CI | 0.094 [0.087, 0.104] (paired bootstrap) | notebook 02 |
 | Best simple rule | distance_km, test PR-AUC 0.059 (model beats it) | notebook 02 |
 | Recall by state at threshold | MG 18.3% … PE 87.8% | notebook 02 |
-| Test accuracy / F1 (late) per model | always on-time 0.956 / 0 · rule 0.853 / 0.124 · logistic 0.734 / 0.161 · LightGBM 0.764 / 0.130 | notebook 02 §8 |
-| Logistic at threshold 0.5 | flags 0 of 32,150 test orders | notebook 02 §6 |
+| Test accuracy / F1 (late) per model | always on-time 0.956 / 0 · rule 0.853 / 0.124 · logistic 0.734 / 0.161 · LightGBM 0.764 / 0.130 | notebook 02 §9 |
+| Logistic at threshold 0.5 | flags 0 of 32,150 test orders | notebook 02 §7 |
+| Missing values (model table) | 5 of 23 features; max 7.22% (train); 6,182 → 0 after preprocessing | notebook 02 §3 |
+| Duplicates (model table) | 0 duplicate orders | notebook 02 §3 |
+| Overfitting check (ROC-AUC train/valid/test) | logistic 0.733/0.726/0.727 · LightGBM 0.770/0.637/0.636 | notebook 02 §10 |
+| Log-transform test | 0.273 vs 0.284 without → not used | notebook 02 §7 |

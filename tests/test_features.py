@@ -8,6 +8,7 @@ from src.features import (
     FORBIDDEN_COLUMNS,
     add_market_context,
     add_seller_history,
+    feature_checks,
     haversine_km,
     time_split,
 )
@@ -107,3 +108,21 @@ def test_time_split_is_ordered_and_disjoint():
         pd.to_datetime(["2017-06-01", "2017-12-31", "2018-01-01", "2018-03-31", "2018-04-01"])
     )
     assert time_split(dates).tolist() == ["train", "train", "valid", "valid", "test"]
+
+
+def test_feature_checks_find_missing_and_duplicates():
+    from src.features import FEATURES as F
+    from src.features import TARGET
+
+    row = {f: 1.0 for f in F}
+    for c in ["customer_state", "seller_state", "payment_type_main", "primary_category"]:
+        row[c] = "x"
+    table = pd.DataFrame([row, row, row])
+    table["order_id"] = ["a", "a", "b"]
+    table[TARGET] = 0
+    table["split"] = ["train", "train", "test"]
+    table.loc[0, "distance_km"] = np.nan
+    checks = feature_checks(table)
+    assert checks["duplicates"].loc[0, "rows"] == 1  # order "a" twice
+    assert checks["missing"].loc["distance_km", "train"] == 50.0
+    assert checks["infinite"]["inf_values"].sum() == 0

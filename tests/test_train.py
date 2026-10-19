@@ -7,6 +7,8 @@ from src.train import (
     bootstrap_pr_auc,
     classification_summary,
     fit_rule,
+    learning_curve_scores,
+    make_logreg,
     rule_score,
     segment_metrics,
 )
@@ -53,3 +55,23 @@ def test_classification_summary_on_known_case():
     # "always on time": high accuracy, zero recall, no crash
     s0 = classification_summary(y, np.zeros(10), threshold=0.5)
     assert s0["accuracy"] == 0.8 and s0["recall"] == 0.0 and s0["f1"] == 0.0
+
+
+def test_log_option_adds_log_branch_and_still_fits():
+    pre_plain = make_logreg(1.0).named_steps["pre"]
+    pre_log = make_logreg(1.0, log_skewed=True).named_steps["pre"]
+    assert [name for name, *_ in pre_plain.transformers] == ["num", "cat"]
+    assert [name for name, *_ in pre_log.transformers] == ["num", "log", "cat"]
+
+
+def test_learning_curve_shape():
+    from sklearn.linear_model import LogisticRegression
+
+    rng = np.random.default_rng(0)
+    x = pd.DataFrame({"a": rng.normal(size=400)})
+    y = (x["a"] + rng.normal(0, 1, 400) > 0).astype(int).to_numpy()
+    out = learning_curve_scores(
+        LogisticRegression, x.iloc[:300], y[:300], x.iloc[300:], y[300:], fractions=(0.5, 1.0)
+    )
+    assert list(out["train_rows"]) == [150, 300]
+    assert out[["train_roc_auc", "valid_roc_auc"]].gt(0.5).all().all()

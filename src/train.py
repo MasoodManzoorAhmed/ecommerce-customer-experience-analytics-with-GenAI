@@ -48,23 +48,52 @@ def evaluate(y: np.ndarray, p: np.ndarray) -> dict[str, float]:
 
 
 # ----------------------------------------------------------------- baseline
-def make_logreg(c: float = 1.0, class_weight: str | None = None) -> Pipeline:
-    """Scaled + one-hot logistic regression. All preprocessing is fitted on training data only."""
-    numeric = Pipeline(
-        [
-            ("impute", SimpleImputer(strategy="median", add_indicator=True)),
-            ("scale", StandardScaler()),
-        ]
-    )
+# Heavily skewed numeric features (training skew > 2): candidates for a log transform
+SKEWED_FEATURES = [
+    "order_value",
+    "freight_value",
+    "freight_ratio",
+    "n_items",
+    "n_sellers",
+    "total_weight_g",
+    "total_volume_cm3",
+    "seller_orders_90d",
+    "seller_delivered_90d",
+    "market_volume_ratio",
+]
+
+
+def make_logreg(
+    c: float = 1.0, class_weight: str | None = None, log_skewed: bool = False
+) -> Pipeline:
+    """Scaled + one-hot logistic regression. All preprocessing is fitted on training data only.
+
+    Missing numeric values are filled with the TRAINING median, and a 0/1 "was missing"
+    column is added per affected feature (so the model can still learn from missingness).
+    log_skewed=True applies log1p to SKEWED_FEATURES before scaling (tested on validation).
+    """
+
+    def numeric_steps(log: bool) -> Pipeline:
+        steps = [("impute", SimpleImputer(strategy="median", add_indicator=True))]
+        if log:
+            steps.append(("log1p", FunctionTransformer(np.log1p, feature_names_out="one-to-one")))
+        return Pipeline([*steps, ("scale", StandardScaler())])
+
     categorical = Pipeline(
         [
             ("to_str", FunctionTransformer(_to_str, feature_names_out="one-to-one")),
             ("onehot", OneHotEncoder(handle_unknown="infrequent_if_exist", min_frequency=50)),
         ]
     )
-    pre = ColumnTransformer(
-        [("num", numeric, NUMERIC_FEATURES), ("cat", categorical, CATEGORICAL_FEATURES)]
-    )
+    if log_skewed:
+        plain = [f for f in NUMERIC_FEATURES if f not in SKEWED_FEATURES]
+        numeric = [
+            ("num", numeric_steps(False), plain),
+            ("log", numeric_steps(True), SKEWED_FEATURES),
+        ]
+    else:
+        numeric = [("num", numeric_steps(False), NUMERIC_FEATURES)]
+    pre = ColumnTransformer([*numeric, ("cat", categorical, CATEGORICAL_FEATURES)])
     model = LogisticRegression(C=c, class_weight=class_weight, max_iter=3000, random_state=SEED)
     return Pipeline([("pre", pre), ("model", model)])
 
@@ -75,18 +104,24 @@ def _to_str(x):
 
 
 def tune_logreg(
-    x_tr, y_tr, x_va, y_va, c_grid=(0.01, 0.1, 1.0), weights=(None, "balanced")
+    x_tr,
+    y_tr,
+    x_va,
+    y_va,
+    c_grid=(0.01, 0.1, 1.0),
+    weights=(None, "balanced"),
+    log_options=(False, True),
 ) -> tuple[Pipeline, pd.DataFrame]:
-    """Pick C and class weighting by validation PR-AUC; return the best pipeline and the table.
+    """Pick C, class weighting and the log transform by validation PR-AUC.
 
     class_weight=None keeps probabilities on the training base rate (interpretable);
     "balanced" up-weights late orders but inflates the probabilities.
     """
     rows, best = [], None
-    for c, w in itertools.product(c_grid, weights):
-        pipe = make_logreg(c, w).fit(x_tr, y_tr)
+    for c, w, log in itertools.product(c_grid, weights, log_options):
+        pipe = make_logreg(c, w, log).fit(x_tr, y_tr)
         score = average_precision_score(y_va, pipe.predict_proba(x_va)[:, 1])
-        rows.append({"C": c, "class_weight": w or "none", "valid_pr_auc": score})
+        rows.append({"C": c, "class_weight": w or "none", "log_skewed": log, "valid_pr_auc": score})
         if best is None or score > best[0]:
             best = (score, pipe)
     table = pd.DataFrame(rows).sort_values("valid_pr_auc", ascending=False, ignore_index=True)
@@ -345,3 +380,31 @@ def classification_summary(
         "tn": tn,
         "cost_vs_flag_none": cost / (cost_fn * (tp + fn)) if tp + fn else float("nan"),
     }
+
+
+def learning_curve_scores(
+    make_model, x_tr, y_tr, x_va, y_va, fractions=(0.1, 0.2, 0.4, 0.6, 0.8, 1.0), seed: int = SEED
+) -> pd.DataFrame:
+    """Train on growing random shares of the training data; score on train and validation.
+
+    ROC-AUC is used for the train-vs-validation gap because, unlike PR-AUC, it doesn't move
+    with the base rate (5.65% late in train vs 12.88% in validation).
+    A large, persistent gap = overfitting; both low and flat = limited signal (underfitting).
+    """
+    rng = np.random.default_rng(seed)
+    order = rng.permutation(len(y_tr))
+    rows = []
+    for frac in fractions:
+        idx = order[: int(round(frac * len(y_tr)))]
+        model = make_model().fit(x_tr.iloc[idx], y_tr[idx])
+        rows.append(
+            {
+                "train_share": frac,
+                "train_rows": len(idx),
+                "train_roc_auc": roc_auc_score(
+                    y_tr[idx], model.predict_proba(x_tr.iloc[idx])[:, 1]
+                ),
+                "valid_roc_auc": roc_auc_score(y_va, model.predict_proba(x_va)[:, 1]),
+            }
+        )
+    return pd.DataFrame(rows)
