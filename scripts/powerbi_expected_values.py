@@ -170,12 +170,36 @@ CHECKS = [
         "[Avg Review (via items)]",
         "SELECT AVG(review_score) FROM fo WHERE is_delivered AND order_id IN (SELECT i.order_id FROM fi i JOIN dp p ON p.product_key = i.product_key WHERE p.category_en = 'health_beauty')",
     ),
+    (
+        "Top State Share (insight card): SP",
+        "insight card on Overview, no filters",
+        "[Top State Share]",
+        "SELECT MAX(rev) / SUM(rev) FROM (SELECT c.state, SUM(i.price) rev FROM fi i JOIN fo USING (order_id) JOIN dc c ON c.customer_key = fo.customer_key WHERE fo.is_delivered GROUP BY 1)",
+    ),
+    (
+        "Peak month revenue (chart subtitle, Jan 2017-Aug 2018): 2017-11",
+        "Monthly revenue chart subtitle, no slicer",
+        "[Peak Month Text]",
+        "SELECT MAX(rev) FROM (SELECT dd.year_month, SUM(i.price) rev FROM fi i JOIN fo USING (order_id) JOIN dd ON dd.date_key = fo.purchase_date_key WHERE fo.is_delivered AND dd.year_month BETWEEN '2017-01' AND '2018-08' GROUP BY 1)",
+    ),
+    (
+        "Peak month revenue with year = 2018: 2018-05",
+        "Monthly revenue chart subtitle, year slicer = 2018",
+        "[Peak Month Text]",
+        "SELECT MAX(rev) FROM (SELECT dd.year_month, SUM(i.price) rev FROM fi i JOIN fo USING (order_id) JOIN dd ON dd.date_key = fo.purchase_date_key WHERE fo.is_delivered AND dd.year_month BETWEEN '2018-01' AND '2018-08' GROUP BY 1)",
+    ),
+    (
+        "State Share of Total in Top 5 table: RJ",
+        "Top 5 states table, row RJ",
+        "[State Share of Total]",
+        "SELECT SUM(i.price) FILTER (WHERE c.state = 'RJ') / SUM(i.price) FROM fi i JOIN fo USING (order_id) JOIN dc c ON c.customer_key = fo.customer_key WHERE fo.is_delivered",
+    ),
 ]
 
 
 def _fmt(check: str, measure: str, value: float) -> str:
     """Human-readable value, formatted the way the Power BI visual should show it."""
-    if "%" in check or "%" in measure or "Rate" in measure or "Risk" in measure:
+    if "%" in check or "%" in measure or any(w in measure for w in ("Rate", "Risk", "Share")):
         return f"{value:.2%}"
     if "Revenue" in check or "AOV" in check:
         return f"R$ {value:,.2f}"

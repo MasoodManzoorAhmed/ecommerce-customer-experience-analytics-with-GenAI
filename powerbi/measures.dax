@@ -111,3 +111,38 @@ DIVIDE (
     CALCULATE ( [Delivered Orders], fact_orders[model_split] = "test" )
 )
 // Use only test-period scores in visuals: training-period scores are in-sample.
+
+// ---------- Insight card (Overview page) ----------
+
+Top State =
+CONCATENATEX ( TOPN ( 1, VALUES ( dim_customer[state] ), [Revenue] ), dim_customer[state], ", " )
+// The customer state with the most revenue in the current selection (year slicer etc.).
+
+Top State Share =
+VAR TopState = TOPN ( 1, VALUES ( dim_customer[state] ), [Revenue] )
+RETURN DIVIDE ( CALCULATE ( [Revenue], TopState ), [Revenue] )
+// That state's share of revenue. Format: Percentage, 1 decimal
+
+Top State Insight =
+FORMAT ( [Top State Share], "0.0%" ) & " of revenue comes from customers in " & [Top State]
+// Sentence for the insight card; changes with the slicers.
+
+State Share of Total =
+DIVIDE ( [Revenue], CALCULATE ( [Revenue], REMOVEFILTERS ( dim_customer[state] ) ) )
+// Share of ALL states' revenue, even inside a Top-N table (Revenue % of Total would
+// divide by the visible top 5 only). Year slicer still applies. Format: Percentage, 2 decimals
+
+// ---------- Monthly revenue chart (Overview page) ----------
+
+Bar Color =
+VAR ThisRev = [Revenue]
+VAR MaxRev = MAXX ( ALLSELECTED ( dim_date[year_month] ), [Revenue] )
+RETURN IF ( ThisRev = MaxRev, "#E4572E", "#0B6E7A" )
+// Columns -> Color -> fx -> Field value: coral for the peak month of the current selection.
+
+Peak Month Text =
+VAR PeakMonth = TOPN ( 1, VALUES ( dim_date[year_month] ), [Revenue] )
+RETURN
+    "Peak month: " & CONCATENATEX ( PeakMonth, dim_date[year_month] )
+        & " (R$ " & FORMAT ( MAXX ( PeakMonth, [Revenue] ), "#,0" ) & ")"
+// Chart subtitle (Title -> Subtitle -> fx -> Field value); always agrees with the coral bar.

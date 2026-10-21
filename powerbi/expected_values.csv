@@ -21,3 +21,7 @@ Actual Late Rate (test orders),"card, no filters",[Late Rate (test)],0.044199066
 "On-time %: test orders, risk_band = high","bar by risk_band (filter model_split = test), row high",[On-time %],0.90640674874601,90.64%
 "On-time %: test orders, risk_band = low","bar by risk_band (filter model_split = test), row low",[On-time %],0.9906311637080868,99.06%
 Avg Review (via items): health_beauty,"table by category, row health_beauty",[Avg Review (via items)],4.229275665620277,4.23
+Top State Share (insight card): SP,"insight card on Overview, no filters",[Top State Share],0.38338744503504596,38.34%
+"Peak month revenue (chart subtitle, Jan 2017-Aug 2018): 2017-11","Monthly revenue chart subtitle, no slicer",[Peak Month Text],987648.07,"987,648.07"
+Peak month revenue with year = 2018: 2018-05,"Monthly revenue chart subtitle, year slicer = 2018",[Peak Month Text],977544.69,"977,544.69"
+State Share of Total in Top 5 table: RJ,"Top 5 states table, row RJ",[State Share of Total],0.13309219435401357,13.31%
