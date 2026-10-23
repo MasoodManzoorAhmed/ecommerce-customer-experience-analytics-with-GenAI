@@ -229,6 +229,33 @@ def choose_threshold(y, p, cost_fn: float = 5.0, cost_fp: float = 1.0) -> dict[s
     }
 
 
+def break_even_table(
+    y: np.ndarray, p: np.ndarray, shares=(0.01, 0.05, 0.10, 0.20), cost_fp: float = 1.0
+) -> pd.DataFrame:
+    """When does flagging the riskiest k% of orders pay off?
+
+    Flagging an order costs cost_fp; catching a late order saves cost_fn. Flagging pays off
+    when precision * cost_fn > (1 - precision) * cost_fp, i.e. when the cost ratio
+    cost_fn / cost_fp exceeds (1 - precision) / precision: the break-even ratio.
+    """
+    order = np.argsort(-p)
+    rows = []
+    for share in shares:
+        n = max(1, int(round(share * len(p))))
+        precision = float(y[order[:n]].mean())
+        rows.append(
+            {
+                "flag top": f"{share:.0%}",
+                "orders flagged": n,
+                "precision": precision,
+                "break-even FN:FP ratio": (1 - precision) / precision * cost_fp
+                if precision > 0
+                else np.inf,
+            }
+        )
+    return pd.DataFrame(rows).set_index("flag top")
+
+
 def confusion_at(y: np.ndarray, p: np.ndarray, threshold: float, cost_fn=5.0, cost_fp=1.0) -> dict:
     """Confusion matrix, precision, recall and cost at a fixed threshold."""
     flag = p >= threshold

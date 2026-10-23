@@ -7,7 +7,10 @@
 
 
 -- name: ml_orders
--- One row per delivered order purchased 2017-01..2018-08 (usable window from the audit).
+-- One row per order purchased 2017-01..2018-08 (usable window from the audit) that is either
+-- delivered, or still open (not canceled/unavailable) after its promised date at the data
+-- cut-off. The main model uses delivered orders only; open orders feed the label-sensitivity
+-- check (src/features.load_model_table(include_open=True)).
 -- Multi-seller orders use the PRIMARY seller = seller of the highest-priced item
 -- (ties -> lowest order_item_id); n_sellers keeps the multi-seller information.
 WITH item_rank AS (
@@ -46,14 +49,21 @@ SELECT
     p.category_en      AS primary_category,
     op.total_weight_g,
     op.total_volume_cm3,
-    f.is_late          -- TARGET (only label; never a feature)
+    f.is_delivered,    -- label source: TRUE = delivered, FALSE = open past its promised date
+    f.is_late          -- TARGET (only label; never a feature; NULL for open orders)
 FROM fact_orders    AS f
 JOIN dim_customer   AS c  ON c.customer_key = f.customer_key
 JOIN item_rank      AS ir ON ir.order_id = f.order_id AND ir.rn = 1
 JOIN dim_seller     AS s  ON s.seller_key = ir.seller_key
 JOIN dim_product    AS p  ON p.product_key = ir.product_key
 JOIN order_physical AS op ON op.order_id = f.order_id
-WHERE f.is_delivered
+WHERE (
+        f.is_delivered
+        OR (
+            f.order_status NOT IN ('canceled', 'unavailable')
+            AND f.estimated_delivery_date < (SELECT MAX(purchase_ts) FROM fact_orders)
+        )
+      )
   AND f.purchase_ts >= TIMESTAMP '2017-01-01'
   AND f.purchase_ts <  TIMESTAMP '2018-09-01'
 ORDER BY f.purchase_ts, f.order_id;

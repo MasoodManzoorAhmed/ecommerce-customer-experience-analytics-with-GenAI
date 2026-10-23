@@ -184,14 +184,27 @@ def time_split(purchase_ts: pd.Series) -> pd.Series:
     )
 
 
-def load_model_table() -> pd.DataFrame:
-    """Run the feature SQL and return the full model table with a train/valid/test column."""
+def load_model_table(include_open: bool = False) -> pd.DataFrame:
+    """Run the feature SQL and return the full model table with a train/valid/test column.
+
+    Default: delivered orders only (the main model's label).
+    include_open=True also keeps orders still undelivered after their promised date at the
+    data cut-off, labelled late (label sensitivity check); `label_source` says which is which.
+    """
     queries = {q.name: q.sql for q in load_named_sql("06_ml_features.sql")}
     with connect(read_only=True) as con:
         orders = con.execute(queries["ml_orders"]).df()
         events = con.execute(queries["ml_seller_events"]).df()
+    delivered = orders["is_delivered"].astype(bool)
+    if include_open:
+        orders["is_late"] = orders["is_late"].astype("boolean").fillna(True)
+    else:
+        orders = orders[delivered].reset_index(drop=True)
+        delivered = delivered[delivered].reset_index(drop=True)
     table = build_features(orders, events)
     table["split"] = time_split(table["purchase_ts"])
+    if include_open:
+        table["label_source"] = np.where(delivered, "delivered", "open_past_promise")
     return table
 
 

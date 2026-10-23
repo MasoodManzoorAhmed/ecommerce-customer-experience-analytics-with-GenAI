@@ -146,3 +146,217 @@ RETURN
     "Peak month: " & CONCATENATEX ( PeakMonth, dim_date[year_month] )
         & " (R$ " & FORMAT ( MAXX ( PeakMonth, [Revenue] ), "#,0" ) & ")"
 // Chart subtitle (Title -> Subtitle -> fx -> Field value); always agrees with the coral bar.
+
+// ---------- Delivery & satisfaction page ----------
+
+Late Rate % =
+DIVIDE ( [Late Orders], [Delivered Orders] )
+// Share of delivered orders that arrived late. Format: Percentage, 2 decimals
+
+Avg Review On Time =
+CALCULATE ( [Avg Review], fact_orders[is_late] = FALSE () )
+
+Avg Review Late =
+CALCULATE ( [Avg Review], fact_orders[is_late] = TRUE () )
+// Both: Decimal, 2 decimals. [Avg Review] keeps delivered orders only (BLANK = FALSE guard).
+
+Low Rating Share =
+VAR Reviewed =
+    CALCULATE (
+        COUNTROWS ( fact_orders ),
+        fact_orders[is_delivered] = TRUE (),
+        NOT ISBLANK ( fact_orders[review_score] )
+    )
+VAR LowRated =
+    CALCULATE (
+        COUNTROWS ( fact_orders ),
+        fact_orders[is_delivered] = TRUE (),
+        NOT ISBLANK ( fact_orders[review_score] ),
+        fact_orders[review_score] <= 2
+    )
+RETURN DIVIDE ( LowRated, Reviewed )
+// Share of reviewed delivered orders rated 1-2 stars. NOT ISBLANK is needed because
+// BLANK <= 2 is TRUE in DAX. Format: Percentage, 1 decimal
+
+Five Star Share =
+VAR Reviewed =
+    CALCULATE (
+        COUNTROWS ( fact_orders ),
+        fact_orders[is_delivered] = TRUE (),
+        NOT ISBLANK ( fact_orders[review_score] )
+    )
+VAR FiveStar =
+    CALCULATE (
+        COUNTROWS ( fact_orders ),
+        fact_orders[is_delivered] = TRUE (),
+        fact_orders[review_score] = 5
+    )
+RETURN DIVIDE ( FiveStar, Reviewed )
+// Share of reviewed delivered orders rated 5 stars. Format: Percentage, 1 decimal
+
+Low Rating Share On Time =
+CALCULATE ( [Low Rating Share], fact_orders[is_late] = FALSE () )
+
+Low Rating Share Late =
+CALCULATE ( [Low Rating Share], fact_orders[is_late] = TRUE () )
+
+Five Star Share On Time =
+CALCULATE ( [Five Star Share], fact_orders[is_late] = FALSE () )
+
+Five Star Share Late =
+CALCULATE ( [Five Star Share], fact_orders[is_late] = TRUE () )
+
+Bucket Color =
+IF (
+    LEFT ( SELECTEDVALUE ( fact_orders[delay_bucket] ), 1 ) IN { "3", "4", "5", "6" },
+    "#E4572E",
+    "#0B6E7A"
+)
+// Review-by-delay chart -> Columns -> Color -> fx -> Field value: late buckets coral.
+
+Worst Late Month Text =
+VAR WorstMonth = TOPN ( 1, VALUES ( dim_date[year_month] ), [Late Rate %] )
+RETURN
+    "Worst month: " & CONCATENATEX ( WorstMonth, dim_date[year_month] )
+        & " (" & FORMAT ( MAXX ( WorstMonth, [Late Rate %] ), "0.0%" ) & " late)"
+// Subtitle of the late-rate-by-month chart; follows the year slicer.
+
+// ---------- Sellers & categories page ----------
+
+Sellers With Sales =
+CALCULATE ( DISTINCTCOUNT ( fact_order_items[seller_key] ), fact_orders[is_delivered] = TRUE () )
+// Sellers with at least one delivered sale in the selection. Format: Whole number
+
+Sellers For 80% Revenue =
+VAR SellerRev =
+    FILTER ( ADDCOLUMNS ( VALUES ( dim_seller[seller_key] ), "@rev", [Revenue] ), [@rev] > 0 )
+VAR Total = SUMX ( SellerRev, [@rev] )
+VAR WithCum =
+    ADDCOLUMNS (
+        SellerRev,
+        "@cumBefore", SUMX ( FILTER ( SellerRev, [@rev] > EARLIER ( [@rev] ) ), [@rev] )
+    )
+RETURN COUNTROWS ( FILTER ( WithCum, [@cumBefore] < 0.8 * Total ) )
+// Fewest sellers (biggest first) needed to reach 80% of revenue. Format: Whole number
+
+Sellers For 80% Share =
+DIVIDE ( [Sellers For 80% Revenue], [Sellers With Sales] )
+// Format: Percentage, 1 decimal
+
+Top 20% Sellers Share =
+VAR SellerRev =
+    FILTER ( ADDCOLUMNS ( VALUES ( dim_seller[seller_key] ), "@rev", [Revenue] ), [@rev] > 0 )
+VAR N = MAX ( 1, ROUND ( 0.2 * COUNTROWS ( SellerRev ), 0 ) )
+VAR TopSellers = TOPN ( N, SellerRev, [@rev], DESC, dim_seller[seller_key], ASC )
+RETURN DIVIDE ( SUMX ( TopSellers, [@rev] ), SUMX ( SellerRev, [@rev] ) )
+// Revenue share of the biggest 20% of sellers; seller_key breaks ties. Format: Percentage, 1 decimal
+
+Top 7 Categories Share =
+VAR Cats = ADDCOLUMNS ( VALUES ( dim_product[category_en] ), "@rev", [Revenue] )
+RETURN DIVIDE ( SUMX ( TOPN ( 7, Cats, [@rev], DESC ), [@rev] ), SUMX ( Cats, [@rev] ) )
+// Format: Percentage, 1 decimal
+
+Worst Sellers Headline =
+VAR Eligible =
+    FILTER (
+        ADDCOLUMNS (
+            VALUES ( dim_seller[seller_key] ),
+            "@orders", [Item-level Orders],
+            "@ontime", [Item-level On-time %],
+            "@state", CALCULATE ( SELECTEDVALUE ( dim_seller[state] ) )
+        ),
+        [@orders] >= 100
+    )
+VAR Worst = TOPN ( 10, Eligible, [@ontime], ASC, dim_seller[seller_key], ASC )
+VAR InSP = COUNTROWS ( FILTER ( Worst, [@state] = "SP" ) ) + 0
+RETURN
+    IF ( COUNTROWS ( Eligible ) = 0, "n/a", InSP & " of " & COUNTROWS ( Worst ) )
+// e.g. "8 of 10": how many of the 10 worst on-time sellers (100+ delivered orders) are in SP.
+// seller_key is a tie-breaker so exactly 10 sellers are taken (two sellers tie at #10).
+// "n/a" when no seller has 100+ orders in the selection (2016), instead of a broken "0 of".
+
+SP Share Of Large Sellers =
+VAR Eligible =
+    FILTER (
+        ADDCOLUMNS (
+            VALUES ( dim_seller[seller_key] ),
+            "@orders", [Item-level Orders],
+            "@state", CALCULATE ( SELECTEDVALUE ( dim_seller[state] ) )
+        ),
+        [@orders] >= 100
+    )
+RETURN DIVIDE ( COUNTROWS ( FILTER ( Eligible, [@state] = "SP" ) ), COUNTROWS ( Eligible ) )
+// Base rate for the Key insight card: share of ALL sellers with 100+ orders that are in SP.
+// If "8 of 10" worst is close to this share, SP is not unusually bad. Percentage, 0 decimals
+
+Category Cumulative Share =
+VAR CurrentRev = [Revenue]
+VAR AllCats =
+    ADDCOLUMNS (
+        CALCULATETABLE ( VALUES ( dim_product[category_en] ), REMOVEFILTERS ( dim_product[category_en] ) ),
+        "@rev", [Revenue]
+    )
+RETURN
+    DIVIDE ( SUMX ( FILTER ( AllCats, [@rev] >= CurrentRev ), [@rev] ), SUMX ( AllCats, [@rev] ) )
+// Pareto line that stays correct inside a Top-15 chart: always measured against ALL categories
+// (Category Cumulative % would divide by the visible 15 and wrongly reach 100%). Percentage, 1 decimal
+
+Pareto Color =
+IF ( [Category Cumulative Share] <= 0.5, "#0B6E7A", "#7FB7BE" )
+// Pareto columns -> Color -> fx -> Field value: dark teal for the categories making the first half of revenue.
+
+Concentration Headline =
+FORMAT ( [Sellers For 80% Share], "0%" ) & " of sellers generate 80% of revenue"
+// Page title that stays true for every year (18% all years, 32% in 2016, 20% in 2017, 21% in 2018).
+
+Pareto Subtitle =
+CALCULATE (
+    VAR Cats = COUNTROWS ( FILTER ( VALUES ( dim_product[category_en] ), [Revenue] > 0 ) )
+    RETURN "Top 7 of " & Cats & " categories make " & FORMAT ( [Top 7 Categories Share], "0.0%" ) & " of revenue",
+    REMOVEFILTERS ( dim_product[category_en] )
+)
+// Pareto chart subtitle (fx). REMOVEFILTERS so the chart's own Top-15 filter can't shrink the count.
+
+Scatter Subtitle =
+CALCULATE (
+    VAR Cats =
+        ADDCOLUMNS ( VALUES ( dim_product[category_en] ), "@rev", [Revenue], "@rv", [Avg Review (via items)] )
+    VAR Top20 = TOPN ( 20, Cats, [@rev], DESC, dim_product[category_en], ASC )
+    VAR Lowest = TOPN ( 1, Top20, [@rv], ASC, dim_product[category_en], ASC )
+    RETURN
+        "Lowest-rated of the top 20: " & MAXX ( Lowest, dim_product[category_en] ) & " ("
+            & FORMAT ( MAXX ( Lowest, [@rv] ), "0.00" ) & "★) vs " & FORMAT ( [Avg Review], "0.00" )
+            & "★ overall. Hover a bubble for details.",
+    REMOVEFILTERS ( dim_product[category_en] )
+)
+// Scatter subtitle (fx) that names the weakest big category for whatever year is selected.
+
+// ---------- Seller detail (drill-through page) ----------
+
+Seller Detail Title =
+IF (
+    HASONEVALUE ( dim_seller[Seller] ),
+    "Seller " & SELECTEDVALUE ( dim_seller[Seller] ) & " · "
+        & SELECTEDVALUE ( dim_seller[city] ) & ", " & SELECTEDVALUE ( dim_seller[state] ),
+    "Right-click a seller on the Sellers page → Drill through → Seller detail"
+)
+// Page title of the drill-through page; blank-safe because SELECTEDVALUE returns blank unless one seller is selected.
+
+Platform On-time % =
+CALCULATE ( [Item-level On-time %], REMOVEFILTERS ( dim_seller ) )
+// Same measure for all sellers (keeps the year filter), shown next to the seller's own on-time %. 93.23% all years
+
+Platform Avg Review =
+CALCULATE ( [Avg Review (via items)], REMOVEFILTERS ( dim_seller ) )
+// Benchmark for the seller's average review. Decimal, 2 decimals
+
+Seller Verdict =
+VAR OT = [Item-level On-time %]
+VAR POT = [Platform On-time %]
+VAR R = [Avg Review (via items)]
+VAR PR = [Platform Avg Review]
+RETURN
+    "On-time " & FORMAT ( OT, "0.0%" ) & " vs " & FORMAT ( POT, "0.0%" ) & " for all sellers ("
+        & FORMAT ( ( OT - POT ) * 100, "+0.0;-0.0" ) & " pts) · Review " & FORMAT ( R, "0.00" )
+        & "★ vs " & FORMAT ( PR, "0.00" ) & "★ (" & FORMAT ( R - PR, "+0.00;-0.00" ) & ")"
+// One-line verdict for the drill-through insight strip; updates for whichever seller is drilled into.

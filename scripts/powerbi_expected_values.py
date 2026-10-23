@@ -194,16 +194,150 @@ CHECKS = [
         "[State Share of Total]",
         "SELECT SUM(i.price) FILTER (WHERE c.state = 'RJ') / SUM(i.price) FROM fi i JOIN fo USING (order_id) JOIN dc c ON c.customer_key = fo.customer_key WHERE fo.is_delivered",
     ),
+    (
+        "Late Rate %",
+        "card / no filters",
+        "[Late Rate %]",
+        "SELECT AVG(is_late::INT) FROM fo WHERE is_delivered",
+    ),
+    (
+        "Avg Review On Time",
+        "comparison card",
+        "[Avg Review On Time]",
+        "SELECT AVG(review_score) FROM fo WHERE is_delivered AND NOT is_late",
+    ),
+    (
+        "Avg Review Late",
+        "comparison card",
+        "[Avg Review Late]",
+        "SELECT AVG(review_score) FROM fo WHERE is_delivered AND is_late",
+    ),
+    (
+        "Low Rating Share On Time (1-2 stars)",
+        "comparison card",
+        "[Low Rating Share On Time]",
+        "SELECT AVG((review_score <= 2)::INT) FROM fo WHERE is_delivered AND NOT is_late AND review_score IS NOT NULL",
+    ),
+    (
+        "Low Rating Share Late (1-2 stars)",
+        "comparison card",
+        "[Low Rating Share Late]",
+        "SELECT AVG((review_score <= 2)::INT) FROM fo WHERE is_delivered AND is_late AND review_score IS NOT NULL",
+    ),
+    (
+        "Five Star Share On Time",
+        "comparison card",
+        "[Five Star Share On Time]",
+        "SELECT AVG((review_score = 5)::INT) FROM fo WHERE is_delivered AND NOT is_late AND review_score IS NOT NULL",
+    ),
+    (
+        "Five Star Share Late",
+        "comparison card",
+        "[Five Star Share Late]",
+        "SELECT AVG((review_score = 5)::INT) FROM fo WHERE is_delivered AND is_late AND review_score IS NOT NULL",
+    ),
+    (
+        "Avg Review: delay bucket 3: 1-3 days late",
+        "review-by-delay chart, bar 3",
+        "[Avg Review]",
+        "SELECT AVG(review_score) FROM fo WHERE is_delivered AND delay_bucket = '3: 1-3 days late'",
+    ),
+    (
+        "Avg Review: delay bucket 6: 15+ days late",
+        "review-by-delay chart, bar 6",
+        "[Avg Review]",
+        "SELECT AVG(review_score) FROM fo WHERE is_delivered AND delay_bucket = '6: 15+ days late'",
+    ),
+    (
+        "Late Rate %: 2017-11",
+        "late rate by month, Nov 2017",
+        "[Late Rate %]",
+        "SELECT AVG(fo.is_late::INT) FROM fo JOIN dd ON dd.date_key = fo.purchase_date_key WHERE fo.is_delivered AND dd.year_month = '2017-11'",
+    ),
+    (
+        "Late Rate %: 2018-03",
+        "late rate by month, Mar 2018",
+        "[Late Rate %]",
+        "SELECT AVG(fo.is_late::INT) FROM fo JOIN dd ON dd.date_key = fo.purchase_date_key WHERE fo.is_delivered AND dd.year_month = '2018-03'",
+    ),
+    (
+        "Late Rate %: test orders, risk_band = high",
+        "risk panel (model_split = test), high",
+        "[Late Rate %]",
+        "SELECT AVG(is_late::INT) FROM fo WHERE model_split = 'test' AND risk_band = 'high'",
+    ),
+    (
+        "Late Rate %: test orders, risk_band = low",
+        "risk panel (model_split = test), low",
+        "[Late Rate %]",
+        "SELECT AVG(is_late::INT) FROM fo WHERE model_split = 'test' AND risk_band = 'low'",
+    ),
+    (
+        "Worst late month, Late Rate % (subtitle, Jan 2017-Aug 2018): 2018-03",
+        "late rate by month chart subtitle, no slicer",
+        "[Worst Late Month Text]",
+        "SELECT MAX(r) FROM (SELECT dd.year_month, AVG(fo.is_late::INT) r FROM fo JOIN dd ON dd.date_key = fo.purchase_date_key WHERE fo.is_delivered AND dd.year_month BETWEEN '2017-01' AND '2018-08' GROUP BY 1)",
+    ),
+    (
+        "Sellers With Sales (count)",
+        "KPI card, no filters",
+        "[Sellers With Sales]",
+        "SELECT COUNT(DISTINCT i.seller_key) FROM fi i JOIN fo USING (order_id) WHERE fo.is_delivered",
+    ),
+    (
+        "Sellers For 80% Revenue (count)",
+        "KPI card, no filters",
+        "[Sellers For 80% Revenue]",
+        "WITH s AS (SELECT i.seller_key, SUM(i.price) rev FROM fi i JOIN fo USING (order_id) WHERE fo.is_delivered GROUP BY 1) SELECT COUNT(*) FROM s a WHERE (SELECT COALESCE(SUM(rev), 0) FROM s b WHERE b.rev > a.rev) < 0.8 * (SELECT SUM(rev) FROM s)",
+    ),
+    (
+        "Top 20% Sellers Share",
+        "KPI card, no filters",
+        "[Top 20% Sellers Share]",
+        "WITH s AS (SELECT i.seller_key, SUM(i.price) rev FROM fi i JOIN fo USING (order_id) WHERE fo.is_delivered GROUP BY 1), r AS (SELECT rev, ROW_NUMBER() OVER (ORDER BY rev DESC, seller_key) rk, COUNT(*) OVER () n FROM s) SELECT SUM(rev) FILTER (WHERE rk <= ROUND(0.2 * n)) / SUM(rev) FROM r",
+    ),
+    (
+        "Top 7 Categories Share",
+        "KPI card, no filters",
+        "[Top 7 Categories Share]",
+        "WITH c AS (SELECT p.category_en, SUM(i.price) rev FROM fi i JOIN fo USING (order_id) JOIN dp p USING (product_key) WHERE fo.is_delivered GROUP BY 1) SELECT SUM(rev) FILTER (WHERE rk <= 7) / SUM(rev) FROM (SELECT rev, ROW_NUMBER() OVER (ORDER BY rev DESC) rk FROM c)",
+    ),
+    (
+        "Worst Sellers Headline: SP sellers among worst 10 (count)",
+        "Key insight card, no filters",
+        "[Worst Sellers Headline]",
+        "WITH so AS (SELECT DISTINCT i.seller_key, fo.order_id, fo.is_late FROM fi i JOIN fo USING (order_id) WHERE fo.is_delivered), e AS (SELECT so.seller_key, COUNT(*) n, 1 - AVG(so.is_late::INT) ot FROM so GROUP BY 1 HAVING COUNT(*) >= 100), w AS (SELECT * FROM e ORDER BY ot, seller_key LIMIT 10) SELECT COUNT(*) FROM w JOIN ds USING (seller_key) WHERE ds.state = 'SP'",
+    ),
+    (
+        "SP Share Of Large Sellers",
+        "Key insight card reference label, no filters",
+        "[SP Share Of Large Sellers]",
+        "WITH e AS (SELECT i.seller_key FROM fi i JOIN fo USING (order_id) WHERE fo.is_delivered GROUP BY 1 HAVING COUNT(DISTINCT i.order_id) >= 100) SELECT AVG((ds.state = 'SP')::INT) FROM e JOIN ds USING (seller_key)",
+    ),
+    (
+        "Category Cumulative Share: 7th category (housewares)",
+        "Pareto chart (Top 15), line at column 7",
+        "[Category Cumulative Share]",
+        "WITH c AS (SELECT p.category_en, SUM(i.price) rev FROM fi i JOIN fo USING (order_id) JOIN dp p USING (product_key) WHERE fo.is_delivered GROUP BY 1) SELECT SUM(rev) FILTER (WHERE rk <= 7) / SUM(rev) FROM (SELECT rev, ROW_NUMBER() OVER (ORDER BY rev DESC) rk FROM c)",
+    ),
+    (
+        "Category Cumulative Share: 15th category (office_furniture)",
+        "Pareto chart (Top 15), line at column 15",
+        "[Category Cumulative Share]",
+        "WITH c AS (SELECT p.category_en, SUM(i.price) rev FROM fi i JOIN fo USING (order_id) JOIN dp p USING (product_key) WHERE fo.is_delivered GROUP BY 1) SELECT SUM(rev) FILTER (WHERE rk <= 15) / SUM(rev) FROM (SELECT rev, ROW_NUMBER() OVER (ORDER BY rev DESC) rk FROM c)",
+    ),
 ]
 
 
 def _fmt(check: str, measure: str, value: float) -> str:
     """Human-readable value, formatted the way the Power BI visual should show it."""
+    if "(count)" in check:
+        return f"{value:,.0f}"
     if "%" in check or "%" in measure or any(w in measure for w in ("Rate", "Risk", "Share")):
         return f"{value:.2%}"
     if "Revenue" in check or "AOV" in check:
         return f"R$ {value:,.2f}"
-    if "Orders" in check:
+    if "Orders" in check or "(count)" in check:
         return f"{value:,.0f}"
     return f"{value:,.2f}"
 

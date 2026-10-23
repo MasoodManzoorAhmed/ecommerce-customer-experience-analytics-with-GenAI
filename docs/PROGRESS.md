@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 4 in progress: data export, DAX measures and guide ready; owner builds the .pbix in Power BI Desktop
+## Status: Day 4 done (Power BI: 3 pages + seller drill-through, 51 measures, 48 reconciliation checks); next: Day 5 Excel + Module 1
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -30,9 +30,10 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 
 ### Day 4: Power BI
 - [x] Export for Power BI: `sql/07_powerbi_export.sql` + `scripts/export_powerbi.py` → `data/powerbi/*.parquet` (6 tables, git-ignored)
-- [x] Expected values for reconciliation: `scripts/powerbi_expected_values.py` → `powerbi/expected_values.csv` (22 checks)
-- [x] 18 DAX measures (`powerbi/measures.dax`), theme (`powerbi/theme.json`), step-by-step guide (`powerbi/POWERBI_GUIDE.md`)
-- [ ] Build 3 pages + drill-through in Power BI Desktop; reconcile with expected_values.csv; save `.pbix` + screenshots
+- [x] Expected values for reconciliation: `scripts/powerbi_expected_values.py` → `powerbi/expected_values.csv` (48 checks, all pass)
+- [x] 51 DAX measures (`powerbi/measures.dax`, explained in `powerbi/DAX_MEASURES_NOTES.md`) + calculated column `dim_seller[Seller]`; theme (`powerbi/theme.json`, Option C "Storyteller")
+- [x] Built 3 pages + Seller detail drill-through in Power BI Desktop (`powerbi/olist_cx_dashboard.pbix`); every page tested for All/2016/2017/2018; screenshots in `powerbi/screenshots/`
+- [ ] Update `powerbi/POWERBI_GUIDE.md` to the final Option C design (currently describes the first draft)
 
 ### Day 5: Excel + Module 1 (start)
 - [ ] `excel/Monthly_CX_Report.xlsx`
@@ -130,6 +131,10 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | **Overfitting check (ROC-AUC train / valid / test)** | logistic 0.733 / 0.726 / 0.727 (no overfitting) · LightGBM 0.770 / 0.637 / 0.636 (overfits) | notebook 02 §10 |
 | 2026-10-19 | Learning curve (logistic, train vs valid ROC-AUC) | 10% data: 0.740 vs 0.639 → 100%: 0.733 vs 0.726; valid plateaus from ~40% | notebook 02 §10 |
 | 2026-10-19 | Calibration (test, by tenth) | top tenth predicted 10.1% vs actual 10.5%; lowest 1.0% vs 0.4%; 9th tenth 6.0% vs 9.8%; Brier 0.041 | notebook 02 §10 |
+| 2026-10-24 | Break-even FN:FP ratio (top-k lists, logistic) | valid top 1% precision 38.8% → 1.6:1 · test top 1% 14.0% → 6.2:1, top 5-20% 8.4-8.8:1 (assumed ratio 5:1) | notebook 02 §11b |
+| 2026-10-24 | Never-delivered orders (open past promised date at cut-off) | 1,702 (train 949 · valid 352 · test 401); late rate incl. them: test 4.42% → 5.60%, valid 12.88% → 14.34%, train 5.65% → 7.67% | notebook 02 §15 |
+| 2026-10-24 | Label sensitivity (test) | mean predicted: on time 3.69% · never delivered 4.51% · delivered late 5.73%; PR-AUC lift on wider label 1.92× (vs 2.13×); re-trained on wider label 1.68× (wider) / 1.80× (delivered) | notebook 02 §15 |
+| 2026-10-24 | Refit on train + valid (C = 0.01, no tuning) | test PR-AUC 0.094 → 0.103 (paired diff CI +0.003 to +0.015) · ROC-AUC 0.727 → 0.703 · mean predicted 3.78% → 9.95% (actual 4.42%) · top 1% precision 14.0% → 18.3% (break-even 4.5:1) · at Bayes threshold 1/6: cost 8,640 vs flag-none 7,105 (2017 model 7,103) | notebook 02 §16 |
 
 ## Decisions log
 
@@ -180,6 +185,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Raw layer loaded with `all_varchar = true`; all type casting done in `sql/01_staging.sql` | Raw copy is exact; every cast is explicit and reviewable |
 | 2026-10-19 | Download via Kaggle public endpoint instead of the Kaggle API key | Reproducible for anyone, no credential to manage |
 | 2026-10-19 | Ruff line-length 100, rules E/F/I/UP/B (`pyproject.toml`); `.gitattributes` forces LF | One lint config for local + CI; consistent line endings for Linux deployment |
+| 2026-10-24 | Keep the delivered-only label; report never-delivered orders separately (5.60% "late or never delivered" on test) | Re-training on the wider label lowers lift (different causes: ~2/3 shipped and lost, ~1/3 never shipped) |
+| 2026-10-24 | **Keep the 2017-trained model** as the saved artefact; document "refit on all recent data + monthly recalibration" as the production recipe | Refit ranks the top 1% better but over-predicts 2× after the Q1-2018 spike; recalibration can't be validated without touching the test set; Power BI page 2 stays consistent |
 
 ## Blockers / notes
 - `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.

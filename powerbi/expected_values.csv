@@ -25,3 +25,25 @@ Top State Share (insight card): SP,"insight card on Overview, no filters",[Top S
 "Peak month revenue (chart subtitle, Jan 2017-Aug 2018): 2017-11","Monthly revenue chart subtitle, no slicer",[Peak Month Text],987648.07,"987,648.07"
 Peak month revenue with year = 2018: 2018-05,"Monthly revenue chart subtitle, year slicer = 2018",[Peak Month Text],977544.69,"977,544.69"
 State Share of Total in Top 5 table: RJ,"Top 5 states table, row RJ",[State Share of Total],0.13309219435401357,13.31%
+Late Rate %,card / no filters,[Late Rate %],0.06773090079817559,6.77%
+Avg Review On Time,comparison card,[Avg Review On Time],4.290386055923885,4.29
+Avg Review Late,comparison card,[Avg Review Late],2.270490518727472,2.27
+Low Rating Share On Time (1-2 stars),comparison card,[Low Rating Share On Time],0.09267354628087161,9.27%
+Low Rating Share Late (1-2 stars),comparison card,[Low Rating Share Late],0.6241968343519825,62.42%
+Five Star Share On Time,comparison card,[Five Star Share On Time],0.6226647138400992,62.27%
+Five Star Share Late,comparison card,[Five Star Share Late],0.16533458705532048,16.53%
+Avg Review: delay bucket 3: 1-3 days late,"review-by-delay chart, bar 3",[Avg Review],3.291036717062635,3.29
+Avg Review: delay bucket 6: 15+ days late,"review-by-delay chart, bar 6",[Avg Review],1.7235955056179775,1.72
+Late Rate %: 2017-11,"late rate by month, Nov 2017",[Late Rate %],0.12403951701427003,12.40%
+Late Rate %: 2018-03,"late rate by month, Mar 2018",[Late Rate %],0.18963301442239042,18.96%
+"Late Rate %: test orders, risk_band = high","risk panel (model_split = test), high",[Late Rate %],0.09359325125398997,9.36%
+"Late Rate %: test orders, risk_band = low","risk panel (model_split = test), low",[Late Rate %],0.009368836291913214,0.94%
+"Worst late month, Late Rate % (subtitle, Jan 2017-Aug 2018): 2018-03","late rate by month chart subtitle, no slicer",[Worst Late Month Text],0.18963301442239042,18.96%
+Sellers With Sales (count),"KPI card, no filters",[Sellers With Sales],2970.0,"2,970"
+Sellers For 80% Revenue (count),"KPI card, no filters",[Sellers For 80% Revenue],533.0,533
+Top 20% Sellers Share,"KPI card, no filters",[Top 20% Sellers Share],0.8229159229606126,82.29%
+Top 7 Categories Share,"KPI card, no filters",[Top 7 Categories Share],0.49872805307305207,49.87%
+Worst Sellers Headline: SP sellers among worst 10 (count),"Key insight card, no filters",[Worst Sellers Headline],8.0,8
+SP Share Of Large Sellers,"Key insight card reference label, no filters",[SP Share Of Large Sellers],0.6904761904761905,69.05%
+Category Cumulative Share: 7th category (housewares),"Pareto chart (Top 15), line at column 7",[Category Cumulative Share],0.49872805307305207,49.87%
+Category Cumulative Share: 15th category (office_furniture),"Pareto chart (Top 15), line at column 15",[Category Cumulative Share],0.7634149941834718,76.34%

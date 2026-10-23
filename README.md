@@ -36,7 +36,7 @@ The project follows the standard analytics order: **understand the business → 
 | 6 | **Answer business questions with SQL** | 12 questions: monthly sales, best and worst states, sellers and categories, repeat customers, payment methods | `sql/04_business_queries.sql`, results in `sql/results/` | ✅ |
 | 7 | **Explore and test the patterns** | Charts plus statistical tests: do late deliveries really cause worse reviews, and how big is the effect? | [EDA notebook](notebooks/01_eda.ipynb) | ✅ |
 | 8 | **Predict late deliveries** | A model that estimates, at the moment of purchase, how likely an order is to arrive late, and explains why | [Model notebook](notebooks/02_late_delivery_model.ipynb) | ✅ |
-| 9 | **Build the dashboard** | Power BI report for managers: overview, delivery and satisfaction, sellers and categories; every number checked against SQL | `powerbi/` ([guide](powerbi/POWERBI_GUIDE.md)) | 🔄 in progress |
+| 9 | **Build the dashboard** | Power BI report for managers: overview, delivery and satisfaction, sellers and categories, plus a seller drill-through page; every number checked against SQL (48 checks) | `powerbi/` ([measures](powerbi/DAX_MEASURES_NOTES.md), [screenshots](#screenshots)) | ✅ |
 | 10 | **Excel management report** | Monthly report with pivot tables and a what-if sheet | `excel/` | ⬜ |
 | 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 40+ test questions | `genai/text_to_sql/` | ⬜ |
 | 12 | **Web app** | Interactive app with KPIs, late-delivery risk and the question box | `app/` | ⬜ |
@@ -53,7 +53,7 @@ Every number in this README comes from code that was actually run; the full log 
 | **SQL data model** | DuckDB star schema (orders, items, customers, sellers, products, dates) + 12 business analyses: cohorts, Pareto, window functions |
 | **EDA** | Data quality, delivery delays, late vs on-time reviews (statistical test), state and seasonality patterns |
 | **Late-delivery model** | Purchase-time features only (no leakage), time-based split, logistic regression vs LightGBM (logistic regression won), cost-based threshold, SHAP |
-| **Power BI dashboard** | Executive overview · Delivery & satisfaction · Sellers & categories |
+| **Power BI dashboard** | Executive overview · Delivery & satisfaction · Sellers & categories · Seller detail (drill-through); 51 documented DAX measures; titles and insights update with the year and state slicers |
 | **Excel report** | Monthly management report with PivotTables, slicers and a what-if sheet |
 | **GenAI 1: Ask the data** | Natural-language questions → safe, read-only SQL; improved step by step (descriptions, semantic layer, few-shot retrieval, self-correction) and measured on a benchmark |
 | **GenAI 2: Review themes** | Complaint-theme classification of Portuguese reviews: TF-IDF vs LoRA-tuned transformer vs zero-shot LLM |
@@ -72,7 +72,21 @@ Olist CSVs → DuckDB (staging → star schema → SQL analyses)
 
 ## Screenshots
 
-*(Power BI pages, app pages and the accuracy-per-step chart go here.)*
+### Power BI dashboard
+
+**1. Executive overview:** how sales are developing (monthly revenue, peak month, top states).
+![Executive overview](powerbi/screenshots/01_overview.png)
+
+**2. Delivery & satisfaction:** late delivery costs about 2 stars per order; late-rate spikes by month; the risk model's bands on test orders.
+![Delivery and satisfaction](powerbi/screenshots/02_delivery_satisfaction.png)
+
+**3. Sellers & categories:** 18% of sellers generate 80% of revenue; category Pareto; revenue vs review; best and worst sellers.
+![Sellers and categories](powerbi/screenshots/03_sellers_categories.png)
+
+**4. Seller detail (drill-through):** right-click any seller to see their revenue, on-time rate and reviews against all sellers.
+![Seller detail](powerbi/screenshots/04_seller_detail.png)
+
+*(App pages and the accuracy-per-step chart will be added later.)*
 
 ## Run It Locally
 

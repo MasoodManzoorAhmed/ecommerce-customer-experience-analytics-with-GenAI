@@ -5,6 +5,7 @@ import pandas as pd
 
 from src.train import (
     bootstrap_pr_auc,
+    break_even_table,
     classification_summary,
     fit_rule,
     learning_curve_scores,
@@ -75,3 +76,14 @@ def test_learning_curve_shape():
     )
     assert list(out["train_rows"]) == [150, 300]
     assert out[["train_roc_auc", "valid_roc_auc"]].gt(0.5).all().all()
+
+
+def test_break_even_ratio_matches_precision():
+    # riskiest 10% (1 order) is late -> precision 1.0 -> pays off at any ratio > 0;
+    # riskiest 50% (5 orders) holds 1 late -> precision 0.2 -> break-even 4:1
+    y = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    p = np.linspace(1, 0, 10)
+    table = break_even_table(y, p, shares=(0.1, 0.5))
+    assert table.loc["10%", "break-even FN:FP ratio"] == 0
+    assert table.loc["50%", "precision"] == 0.2
+    assert np.isclose(table.loc["50%", "break-even FN:FP ratio"], 4.0)

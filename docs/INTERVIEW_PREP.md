@@ -146,6 +146,9 @@ Flags include 775 orders with no items, 768 with no review, 249 where payment to
 ### 🟡 "Why the minimum-volume thresholds (100 orders per seller, 500 per category)?"
 **Small samples give extreme rates. A seller with 2 orders and 1 late is "50% late" but that tells you nothing.** The threshold makes the ranking reflect performance, not noise.
 
+### 🟡 "Why does your worst-sellers table only show sellers with 100+ orders?"
+**A seller with 3 orders and 1 late one shows 67% on-time, but that's luck, not a pattern.** 100 is the same threshold as SQL query q05 (worst sellers) and the `Worst Sellers Headline` measure, so the SQL, the table and the insight card all agree. 210 sellers meet it. In Power BI it's a visual-level filter on `Item-level Orders` ≥ 100.
+
 ### 🟡 "Why did you cut the monthly trend to 2017-01 to 2018-08?"
 **2016 has only 267 delivered orders (November is missing entirely), and the last months of 2018 are cut off.** Including them produced meaningless figures like a +1,025,573% month-on-month jump. I documented why I trimmed rather than hiding it.
 
@@ -331,6 +334,25 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 ### 🟡 "Are the predicted probabilities meaningful?"
 **Roughly, on test:** the average predicted risk is 3.78% against an actual 4.42%. I deliberately didn't use class weighting in the final model: it scored better on validation (0.284 vs 0.267) and keeps probabilities on the real scale. On validation the model predicted 3.42% against an actual 12.88%; it can't anticipate a regime it has never seen. That's why monitoring matters.
 
+### 🔴 "When is your model actually worth using?"
+**I turned the cost assumption into a break-even ratio.** Flagging pays off when precision × cost of a missed late order > (1 − precision) × cost of a false alarm. In the test period the riskiest 1% of orders are late 14.0% of the time, so a caught late order must be worth at least **6.2 false alarms** (it was 1.6 on validation). So the model suits cheap automatic actions, like a "may be delayed" message, not manual calls. That's the number to agree with operations, more than a threshold.
+
+### 🔴 "Your label only covers delivered orders. What about orders that never arrived?"
+**I checked it: 1,702 orders were still undelivered after their promised date at the data cut-off.** Counting them as late raises the test late rate from 4.42% to **5.60%**, so the delivered-only label understates the problem by about a quarter. But re-training on that wider label made the model worse (lift 2.13× → 1.80× on delivered orders), because they have different causes: about two-thirds were shipped and lost, one-third never left the seller. So I kept the delivered label and report never-delivered orders as a separate fulfilment problem.
+
+### 🔴 "Did you retrain on train + validation before deploying?"
+**"I tested refitting on train + validation. It ranked the top 1% better (18.3% precision) but over-predicted by 2× after the spike. The right production recipe is refit plus monthly recalibration. With the data I had, I couldn't validate that without touching the test set, so I kept the model whose test numbers are clean."**
+
+The numbers behind it, if they dig deeper:
+- **Better at ranking the riskiest orders:** test PR-AUC 0.094 → 0.103, paired bootstrap difference +0.003 to +0.015 (excludes 0); top-1% precision 14.0% → 18.3%, break-even ratio 6.2:1 → 4.5:1.
+- **Worse overall and miscalibrated:** ROC-AUC 0.727 → 0.703; mean predicted 9.9% vs actual 4.4%, because it learned from the Q1-2018 spike (12.9% late).
+- **Why I couldn't validate recalibration:** every month after March 2018 is the test set, so calibrating there would be leakage; calibrating on March 2018 (the 19% spike month) would inflate the probabilities further.
+- **Why the decision matters downstream:** the dashboard's "predicted 3.78% vs actual 4.42%" stays true with the 2017 model; the refit would show 9.95% vs 4.42%.
+- **The principle:** switch models when the new one is better *for its intended use and safe to ship*. Here the evidence was mixed and the safety step couldn't be verified.
+
+### 🟡 "What's the cost-optimal threshold in theory?"
+**For calibrated probabilities it's cost_FP / (cost_FP + cost_FN) = 1/6 for a 5:1 ratio, no tuning needed.** My 2017 model is close to calibrated on test (3.8% predicted vs 4.4% actual) and at 1/6 it flags almost nothing, which costs the same as flagging nothing (7,103 vs 7,105). That agrees with the break-even analysis: on test, almost no order is more than 1/6 likely to be late.
+
 ### 🟡 "How is the model used downstream?"
 **Every order is scored into `fact_order_risk`: probability, risk band (high/medium/low relative to the threshold), model version, top-3 SHAP drivers and a split column.** Dashboards should filter to `split = 'test'` for honest numbers, because training-period scores are in-sample. The scores are saved to Parquet and reloaded on every database rebuild, and the model plus its metadata (features, threshold, metrics, dates) are saved in `models/`.
 
@@ -358,6 +380,30 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 
 ### 🟡 "What does the model page show?"
 **Test-period orders only, grouped by risk band:** high-risk orders were on time 90.64% of the time and low-risk orders 99.06%, so late orders are about 10× more common in the high band. Training-period scores are excluded because they're in-sample.
+
+### 🟢 "Walk me through your revenue vs review scatter chart." (Sellers & categories page)
+**Each bubble is one of the 20 highest-revenue categories: X = revenue, Y = average review, size = number of orders. A dashed line marks the overall average review (4.16).** Bubbles below the line and to the right earn a lot but disappoint customers. Three of the top 5 earners sit below the line: bed_bath_table (R$1.02M, 4.00★), computers_accessories (R$0.89M, 4.08★) and watches_gifts (R$1.17M, 4.12★). office_furniture (R$0.27M, 3.64★) is the clear outlier and is coloured coral by a rule (review < 3.9).
+
+### 🔴 "Your Y-axis starts at 3.6, not 0. Isn't that misleading?"
+**It's zoomed on purpose, so I always quote the actual numbers.** Every category scores between 3.6 and 4.3, and an axis from 0 would squash them into one line. Zooming exaggerates visual gaps, though, so I'm careful: bed_bath_table is only 0.16★ below average, while office_furniture is 0.52★ below, which is the real outlier. (Bar charts must start at 0 because bar length encodes the value; scatter positions don't.)
+
+### 🟡 "Why is the average line a constant line on the measure and not Power BI's 'Average' line?"
+**Power BI's built-in Average line averages the 20 dots, so each category counts equally.** That gives a different number from the true average over all orders (4.16). I set a constant line to the `Avg Review` measure so the line shows the real overall average, and it updates with slicers.
+
+### 🟡 "How does a user know which bubble is which?"
+**Hovering shows a tooltip with the category name, revenue, review and order count.** I also added extra fields to the tooltip (on-time % and late rate), so a user can see *why* a category might score badly without crowding the chart with labels. For the single outlier I added a small text label, accepting that it's static and has to be checked when slicers change the view.
+
+### 🔴 "8 of the 10 worst sellers are in São Paulo. So São Paulo sellers are the problem?"
+**Not on its own. I checked the base rate first: 69% of all sellers with 100+ orders are in SP (145 of 210).** If SP sellers were no worse than anyone else, about 7 of the worst 10 would be from SP anyway, so 8 is only slightly more. The honest conclusion: the problem is a handful of individual sellers, not the region. The card shows both numbers so no one draws the wrong conclusion. (Supporting detail: orders from SP sellers are late 7.24% of the time vs 5.35% for other states, so there's a modest regional gap, but it doesn't make the region the main story.)
+
+### 🟡 "What happens to your dashboard text when someone filters by year?"
+**I tested every year and found titles that were typed numbers: "18% of sellers…" was true for all years but 32% in 2016.** I replaced them with measures (`Concentration Headline`, `Pareto Subtitle`, `Scatter Subtitle`), so text and numbers always agree. In 2016 no seller had 100+ orders, so the headline measure now says "n/a" instead of a broken "0 of".
+
+### 🔴 "Is office_furniture rated badly because it's delivered late?"
+**Only partly, and that's the interesting part.** Its on-time rate is 91.95% (about 8% late) against 93.23% overall (6.77% late), so it's only slightly worse, yet its review is 0.52★ below average. Lateness alone doesn't explain it. My hypothesis is product-related (damage, missing parts, assembly), which I test with the GenAI review analysis (Module 1) instead of guessing.
+
+### 🟡 "Did a tooltip ever show you a wrong number?"
+**Yes.** I added `Late Rate %` to the scatter tooltip and every category showed 6.77%, the overall rate. That measure counts the orders table, which product filters can't reach (they only filter the order-lines table). I removed it and kept `Item-level On-time %`, which counts orders through the lines table. Lesson: check that a measure actually responds to the filter context of the visual it's placed in.
 
 ---
 
@@ -435,3 +481,10 @@ Fill these in as each part is built, using real results only.
 | Duplicates (model table) | 0 duplicate orders | notebook 02 §3 |
 | Overfitting check (ROC-AUC train/valid/test) | logistic 0.733/0.726/0.727 · LightGBM 0.770/0.637/0.636 | notebook 02 §10 |
 | Log-transform test | 0.273 vs 0.284 without → not used | notebook 02 §7 |
+| Overall avg review (delivered) | 4.156 → shown as 4.16 | Parquet check, scatter line |
+| Top-20 categories below avg (scatter) | bed_bath_table R$1.02M 4.00★ · computers_accessories R$0.89M 4.08★ · watches_gifts R$1.17M 4.12★ · office_furniture R$0.27M 3.64★ | Parquet check (Day 4) |
+| office_furniture on-time (item-level) | 91.95% vs 93.23% overall (late ≈ 8% vs 6.77%) | Power BI tooltip + Parquet check |
+| Categories with sales | 74 (7 make half of revenue) | Parquet check (Day 4) |
+| Top 5 sellers by revenue | 4869f7a5 SP R$226,988 · 53243585 BA R$217,940 · 4a3ca931 SP R$196,882 (3.85★) · fa1c13f2 SP R$190,917 · 7c67e144 SP R$186,570 (3.50★) | Parquet check (Day 4) |
+| Sellers with ≥100 orders | 210 (145 in SP = 69%); worst on-time 80.98% (06a2c3af, MA); 8 of worst 10 in SP | Parquet check (Day 4) |
+| Highest-rated top-20 categories | stationery 4.30★ · pet_shop 4.27★ · perfumery 4.26★ | Parquet check (Day 4) |
