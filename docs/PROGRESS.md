@@ -33,7 +33,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Expected values for reconciliation: `scripts/powerbi_expected_values.py` → `powerbi/expected_values.csv` (48 checks, all pass)
 - [x] 51 DAX measures (`powerbi/measures.dax`, explained in `powerbi/DAX_MEASURES_NOTES.md`) + calculated column `dim_seller[Seller]`; theme (`powerbi/theme.json`, Option C "Storyteller")
 - [x] Built 3 pages + Seller detail drill-through in Power BI Desktop (`powerbi/olist_cx_dashboard.pbix`); every page tested for All/2016/2017/2018; screenshots in `powerbi/screenshots/`
-- [ ] Update `powerbi/POWERBI_GUIDE.md` to the final Option C design (currently describes the first draft)
+- [x] `powerbi/POWERBI_GUIDE.md` rewritten for the final "Storyteller" design (design system, all 4 pages as built, reconciliation)
 
 ### Day 5: Excel + Module 1 (start)
 - [ ] `excel/Monthly_CX_Report.xlsx`

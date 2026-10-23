@@ -350,6 +350,15 @@ The numbers behind it, if they dig deeper:
 - **Why the decision matters downstream:** the dashboard's "predicted 3.78% vs actual 4.42%" stays true with the 2017 model; the refit would show 9.95% vs 4.42%.
 - **The principle:** switch models when the new one is better *for its intended use and safe to ship*. Here the evidence was mixed and the safety step couldn't be verified.
 
+### 🔴 "Why did you refit the model when you had already found the best one?"
+**Because finding the best model and building the final model are two different steps.**
+- **Step 1, choosing:** to compare models fairly I had to hold back Jan-Mar 2018 as validation. On it, logistic regression beat LightGBM and the simple rule, and I picked its settings (C = 0.01, no class weights) and the threshold. That answered *which model and which settings*.
+- **Step 2, building:** once the choice is made, the validation months are no longer needed for choosing, and they're the **most recent** data before deployment, including the Q1-2018 delay spike. Throwing them away means the deployed model never sees the latest behaviour. So standard practice is to refit the **same** model with the **same** settings on all data before the test period. It's the same idea as scikit-learn's `GridSearchCV(refit=True)`, which refits the best settings on all the data by default.
+- **Why it's not cheating:** no new model, no new tuning, and the rule ("refit the winner on train + valid") was fixed before I looked at the result. The test set was only used to *evaluate* it.
+- **What happened:** it ranked the riskiest orders better (top-1% precision 14.0% → 18.3%) but over-predicted by 2× because it learned from the spike. So I kept the 2017 model as the saved one and documented "refit + monthly recalibration" as the production recipe.
+
+**One-line version:** *"Validation is for choosing; once you've chosen, you retrain on everything you're allowed to use. I tested that properly, found it hurt calibration, and kept the cleaner model."*
+
 ### 🟡 "What's the cost-optimal threshold in theory?"
 **For calibrated probabilities it's cost_FP / (cost_FP + cost_FN) = 1/6 for a 5:1 ratio, no tuning needed.** My 2017 model is close to calibrated on test (3.8% predicted vs 4.4% actual) and at 1/6 it flags almost nothing, which costs the same as flagging nothing (7,103 vs 7,105). That agrees with the break-even analysis: on test, almost no order is more than 1/6 likely to be late.
 

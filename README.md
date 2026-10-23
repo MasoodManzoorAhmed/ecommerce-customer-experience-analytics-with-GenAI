@@ -36,7 +36,7 @@ The project follows the standard analytics order: **understand the business → 
 | 6 | **Answer business questions with SQL** | 12 questions: monthly sales, best and worst states, sellers and categories, repeat customers, payment methods | `sql/04_business_queries.sql`, results in `sql/results/` | ✅ |
 | 7 | **Explore and test the patterns** | Charts plus statistical tests: do late deliveries really cause worse reviews, and how big is the effect? | [EDA notebook](notebooks/01_eda.ipynb) | ✅ |
 | 8 | **Predict late deliveries** | A model that estimates, at the moment of purchase, how likely an order is to arrive late, and explains why | [Model notebook](notebooks/02_late_delivery_model.ipynb) | ✅ |
-| 9 | **Build the dashboard** | Power BI report for managers: overview, delivery and satisfaction, sellers and categories, plus a seller drill-through page; every number checked against SQL (48 checks) | `powerbi/` ([measures](powerbi/DAX_MEASURES_NOTES.md), [screenshots](#screenshots)) | ✅ |
+| 9 | **Build the dashboard** | Power BI report for managers: overview, delivery and satisfaction, sellers and categories, plus a seller drill-through page; every number checked against SQL (48 checks) | `powerbi/` ([build guide](powerbi/POWERBI_GUIDE.md), [measures](powerbi/DAX_MEASURES_NOTES.md), [screenshots](#screenshots)) | ✅ |
 | 10 | **Excel management report** | Monthly report with pivot tables and a what-if sheet | `excel/` | ⬜ |
 | 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 40+ test questions | `genai/text_to_sql/` | ⬜ |
 | 12 | **Web app** | Interactive app with KPIs, late-delivery risk and the question box | `app/` | ⬜ |
