@@ -307,8 +307,34 @@ Examples: a typo in a column name → fix. A carrier pickup before purchase (166
 ### 🟢 "What drives late-delivery risk according to your model?"
 **From SHAP:** promised delivery days (a longer estimate means less risk, because padded promises are easier to keep), seller-to-customer distance (farther means more risk), customer state, same-state shipping (less risk), and recent platform and seller history. Seller orders and seller deliveries in the last 90 days point in opposite directions, but they're 99% correlated (r = 0.989), so that's **collinearity**: the linear model splits one signal into two opposite weights. I read such pairs together, never one by one.
 
-### 🟡 "What is SHAP, and how did you compute it?"
-**SHAP splits a single prediction into contributions from each feature, so they add up to the prediction.** For a linear model it's exact: contribution = coefficient × (feature value − training average), in log-odds. I implemented that, cross-checked it against the `shap` library (identical, max difference 0.00), and checked that the contributions plus the baseline reproduce the model's output (error 2.66e-15). One-hot columns are summed back so each original feature gets one number.
+### 🟢 "What is SHAP?"
+**SHAP (SHapley Additive exPlanations) splits one prediction into a contribution from each feature, so that baseline + contributions = the model's output for that order.** It comes from game theory (Shapley values): the features are "players", the prediction is the "payout", and each feature gets its fair share of the difference between this order's score and the average order's score. A positive SHAP value pushes the risk up and a negative one pushes it down.
+
+### 🟢 "Why did you use SHAP?"
+Three reasons, one per audience:
+- **Operations (one order):** "why is *this* order high risk?" A risk score alone isn't actionable; "the seller was late on its recent orders and the promise is short" tells someone what to do. The top-3 drivers are stored per order in `fact_order_risk` for the app.
+- **Business (the whole model):** averaging the absolute SHAP values over test orders ranks what drives late risk overall: promised days 0.460, distance 0.275, customer state 0.227, same-state 0.192 (log-odds).
+- **Me (model checking):** SHAP shows whether the model learned sensible directions. Longer promised time → less risk and longer distance → more risk make business sense. It also exposed **collinearity**: seller orders and seller deliveries in 90 days point in opposite directions because they're 99% correlated, so I read them together.
+
+Why not just the coefficients? Coefficients are per *scaled, one-hot* column and say nothing about a specific order. SHAP gives one number per original feature, per order, in the same unit (log-odds), and the same idea works for tree models like LightGBM (via `TreeExplainer`), so explanations don't depend on the model type.
+
+### 🟡 "How did you compute SHAP?"
+**For a linear model SHAP is exact and simple: contribution = coefficient × (this order's transformed value − the training average of that value), in log-odds.**
+1. Transform the order with the fitted pipeline (impute, scale, one-hot).
+2. Subtract the **training** mean of each transformed column (stored on the model as `train_mean_`, the baseline).
+3. Multiply by the logistic-regression coefficient.
+4. Sum the one-hot and "was missing" columns back into their original feature, so `customer_state` gets one number instead of one per state column.
+
+Code: `linear_contributions()` in `src/predict.py`. **Checks:** identical to the `shap` library's `LinearExplainer` (max difference 0.00), and baseline + contributions reproduce the model's log-odds exactly (error 2.66e-15).
+
+### 🟡 "Walk me through one explained order."
+The riskiest test order scored **46%** late risk, against a baseline of about **4.3%** for an average order. The biggest pushes up: the seller's 90-day late rate was 100% (**+1.47**), the customer is in RJ (**+0.63**), and the promise was only 16 days (**+0.52**, shorter than usual, so harder to keep). A 16.5 kg basket added +0.23. The 366 km distance pulled it down a little (**−0.16**, closer than average). In plain words: *a seller who has been late recently, shipping to a slow state, with a tight promise.*
+
+### 🔴 "What are SHAP's limitations?"
+- **It explains the model, not the world.** SHAP says what the model relies on, not what *causes* lateness. Promised days lowering risk means padded estimates are easier to keep, not that longer promises make parcels faster.
+- **Correlated features share credit unpredictably.** The two seller-volume features split one signal into opposite weights, so correlated pairs are read together.
+- **Units are log-odds**, so contributions add up in log-odds, not in percentage points. I convert only the final total back to a probability.
+- **Features constant in a period** (e.g. `is_nov_dec` in the Apr-Aug test window) shift every order equally, so I left them off the test importance chart.
 
 ### 🟢 "What's your model's accuracy? Show me the classification report."
 **Each model has its own section with a full classification report and confusion matrix; accuracy is in there, but I don't use it to choose.** On the test period: the do-nothing model ("never late") has the **highest** accuracy, 95.6%, and catches zero late orders. Logistic regression has 73.4% accuracy but the best late-class results: precision 9.4%, recall 57.8%, F1 0.161. So accuracy ranks the models backwards here; I use PR-AUC and late-class F1, and I show accuracy precisely to make that point.
