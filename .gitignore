@@ -37,3 +37,6 @@ Thumbs.db
 
 # evaluation run logs (results are in genai/results/*.csv)
 genai/results/*.log
+
+# Streamlit app: its own LLM cache (questions typed in the app stay out of the evaluation results)
+app/.cache/

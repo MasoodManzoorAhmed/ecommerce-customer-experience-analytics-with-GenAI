@@ -538,6 +538,22 @@ The numbers behind it, if they dig deeper:
 
 ---
 
+## 9h. Streamlit app (Day 6)
+
+### 🟢 "Show me your app."
+**Four pages, one story.** *Overview*: KPIs, the monthly trend and the core finding (reviews fall from the first day late), filterable by year and state. *Late-delivery risk*: pick a real order from the unseen test period, see its predicted probability, a SHAP explanation of why, and what-if sliders that re-score it live (e.g. the seller in the customer's state: 46% → 36%). *Ask the data*: a plain-English question becomes SQL, which is always shown, checked by guardrails and run read-only. *Review themes*: Module 2, coming next.
+
+### 🟡 "How do you make sure the app shows the same numbers as Power BI?"
+**Same definitions, same extract, and a test.** The app reads the same month × state extract as the Excel report and rebuilds every ratio as sum ÷ sum after filtering. `tests/test_app.py` checks its totals equal the Power BI reconciliation values (R$ 13,220,248.93 · 96,470 orders · 93.23% on time · 4.16 ★), the delay chart equals SQL query q08, and the 2018 filter gives the same revenue as the evaluation gold answer.
+
+### 🟡 "Why does the app always show the SQL?"
+**Because the most dangerous errors are silent:** a query that runs and returns a plausible but wrong number. Showing the SQL lets a user see what was counted (e.g. "delivered orders only?"). Combined with read-only access, allowed tables, no file access and a timeout, a wrong answer can mislead but can't damage anything.
+
+### 🟡 "Design choices?"
+One design system across Power BI, Excel and the app (deep teal, coral only for problems). Charts have one y-axis each (no dual axes), direct labels only where they help, and every headline sentence is computed from the data, so it stays true when the filters change. Fonts come from the visitor's own system, so no request goes to Google (privacy under GDPR), and the layout works on a phone.
+
+---
+
 ## 10. Coming next: questions to prepare later
 
 Fill these in as each part is built, using real results only.

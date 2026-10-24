@@ -1,0 +1,27 @@
+# Streamlit theme: the same "Storyteller" palette as the Power BI report and Excel workbook.
+[theme]
+base = "light"
+primaryColor = "#0B6E7A"
+backgroundColor = "#FAF8F4"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1F2A2E"
+borderColor = "#E9E2D6"
+font = "sans-serif"
+baseRadius = "0.6rem"
+showWidgetBorder = true
+
+[theme.sidebar]
+backgroundColor = "#0B3C49"
+textColor = "#E9F2F3"
+secondaryBackgroundColor = "#14505E"
+borderColor = "#14505E"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+# no file watcher: it scans every optional module of transformers (log noise, slower)
+fileWatcherType = "none"

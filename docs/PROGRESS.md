@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; local ablation complete, leak-free (34.8% → 80.4%); chart + README results done; next: final model comparison (best config on north-mini-code + gemma, within the free daily quota)
+## Status: Day 6: Streamlit app built and tested locally; Module 1 local ablation complete, leak-free (34.8% → 80.4%); chart + README results done; next: final model comparison (best config on north-mini-code + gemma, within the free daily quota)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -51,7 +51,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 
 ### Day 6: Module 1 (finish) + app
 - [ ] Steps a–d measured; guardrails + tests; model comparison
-- [ ] Streamlit app deployed (URL: …)
+- [x] Streamlit app built and tested locally (`app/`): Overview, Late-delivery risk (SHAP + what-if), Ask the data (pipeline a+b+c+d, local Ollama or OpenRouter, SQL always shown, guardrails), Review themes placeholder; design system `app/ui.py` + `.streamlit/config.toml`; extracts `app/data/*.parquet` via `scripts/export_app_data.py` + `sql/09_app_data.sql`; `tests/test_app.py` (KPIs = Power BI values, pages render)
+- [ ] Streamlit app deployed (Day 7, after the GitHub push; URL: …)
 
 ### Day 7: Packaging (first pass)
 - [ ] GitHub Actions CI (ruff + pytest) · Dockerfile (nice-to-have, cut first if short on time)
@@ -168,6 +169,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | **Leak found in code review** | The semantic-layer prompt included its `expected` test values; 7 were evaluation answers (e02, e03, e07, e09, e10, e11, e12). No stored SQL contained any of them as a literal. Fixed (`pipeline.semantic_layer_text` strips them; `test_semantic_layer_prompt_contains_no_test_answers`) and steps b-d re-run | code review this session |
 | 2026-10-24 | **Leak-free ablation, local qwen2.5-coder 7B (current numbers)** | baseline 16/46 = 34.8% → +a 18/46 = 39.1% → **+b 29/46 = 63.0%** (easy 93.3 · medium 72.2 · hard 15.4) → **+c 35/46 = 76.1%** (100 · 72.2 · 53.8) → **+d 37/46 = 80.4%** (100 · 77.8 · 61.5); step d retried 6, fixed 2 (h05, m11); largest gain: semantic layer +11 | `genai/results/text_to_sql_summary.csv` |
 | 2026-10-24 | Leak-free step d failures (9) | wrong result with no error (no retry possible): h01 LAG inside the filtered window, h02 seller revenue, h13 not distinct orders, m07 missing delivered filter, m17 borderline NULL payment row · still failing after the retry: h03, m04, m10 (execution), h07 (unparseable) | manual review |
+| 2026-10-24 | Streamlit app checks | app extracts reconcile: R$ 13,220,248.93 · 96,470 orders · 93.23% on time · 4.16 ★; 2018 filter R$ 7,217,172.24 (= gold m01); delay buckets = SQL q08; worst state MA 82.64%; risk page example order 46% → 36.1% with seller in the same state; Ask page answered 'late rate by quarter 2017' (3.78 / 3.92 / 3.37 / 8.69%) = direct SQL, 53 s on the local model | `tests/test_app.py`, browser check |
 
 ## Decisions log
 
@@ -228,6 +230,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | Main ablation model = local `qwen2.5-coder:7b` (Ollama); hosted free models only for the final comparison | The 50-requests/day free cap made one step per day; local runs are unlimited and reproducible (pinned weights). north-mini-code baseline 45.7% kept as a logged data point |
 | 2026-10-24 | Few-shot examples stored as YAML; retrieval with a local embedding model | Readable SQL; offline and free; tests forbid examples whose result equals any evaluation answer (prevents leakage) |
 | 2026-10-24 | Numeric matching at the gold answer's precision (was ±0.05 / 0.01%) | The looser tolerance accepted wrong answers; all stored runs re-scored |
+| 2026-10-24 | App: Overview and Risk read small committed extracts; Ask needs the DB + a model | Deployable to Streamlit Cloud without the 1 GB database; the GenAI page degrades with a clear message |
+| 2026-10-24 | App fonts from the visitor's system (no Google Fonts); file watcher off | No visitor IP sent to a third party (GDPR); the watcher scanned every optional transformers module |
+| 2026-10-24 | App questions use their own LLM cache (`app/.cache`, git-ignored) | Typed questions never mix with the evaluation cache or results |
 
 ## Blockers / notes
 - `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.
