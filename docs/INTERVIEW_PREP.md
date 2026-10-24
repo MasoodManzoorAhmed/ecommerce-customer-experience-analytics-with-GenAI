@@ -515,20 +515,23 @@ The numbers behind it, if they dig deeper:
 |---|---|---|---|
 | Baseline | Table and column names | **34.8%** | 60.0 / 33.3 / 7.7 |
 | + a | Column descriptions and stored values | **39.1%** | 60.0 / 38.9 / 15.4 |
-| + b | Semantic layer (business definitions) | **65.2%** | 100 / 72.2 / 15.4 |
+| + b | Semantic layer (business definitions) | **63.0%** | 93.3 / 72.2 / 15.4 |
 | + c | 3 retrieved similar solved examples | **76.1%** | 100 / 72.2 / 53.8 |
-| + d | Self-correction: send the error back once | **82.6%** | 100 / 83.3 / 61.5 |
+| + d | Self-correction: send the error back once | **80.4%** | 100 / 77.8 / 61.5 |
 
-**The biggest single gain was the semantic layer (+12 questions)**: the model already knew SQL, it didn't know our business. Examples mainly helped hard questions (window functions, cumulative shares), and self-correction fixed 3 of the 6 queries that crashed. All at US$0, on a laptop.
+**The biggest single gain was the semantic layer (+11 questions)**: the model already knew SQL, it didn't know our business. Examples mainly helped hard questions (window functions, cumulative shares), and self-correction fixed 2 of the 6 queries that crashed. (These are the leak-free numbers: see the question about evaluation bugs.) All at US$0, on a laptop.
 
 ### 🔴 "What is few-shot retrieval, and can it hurt?"
 **Instead of fixed examples, each question gets the 3 most similar solved examples, found by meaning with sentence embeddings** (`all-MiniLM-L6-v2`, run locally). It mostly helps, but I saw it hurt once: for "which states have the longest delivery time?", it retrieved an example about **seller** states and the model copied that join, answering the wrong question (negative transfer). The examples teach patterns on different metrics and periods, and a test forbids any example whose result equals an evaluation answer, so the model can't copy answers.
 
 ### 🔴 "Why can self-correction only fix some errors?"
-**It only triggers when there is an error message to send back**: a blocked or crashing query. A query that runs and returns a wrong number gives no signal, so it can't be corrected; 5 of my 8 remaining failures are like that. That's why the evaluation set and the semantic layer matter more than retries: they target the silent errors.
+**It only triggers when there is an error message to send back**: a blocked or crashing query. A query that runs and returns a wrong number gives no signal, so it can't be corrected; 5 of my 9 remaining failures are like that. That's why the evaluation set and the semantic layer matter more than retries: they target the silent errors.
 
 ### 🔴 "Did you ever find a bug in your evaluation?"
 **Yes, twice, and fixing it lowered some scores.** First, a question with an ambiguous month format (a false negative). Second, my numeric tolerance was too loose: it accepted 4.19 stars as matching 4.16, and 96,478 delivered orders as matching 96,470. The anti-leakage test exposed it. I changed the rule to compare at the precision of the gold answer and re-scored every stored run from its saved SQL, with no new LLM calls: 4 verdicts changed, all from correct to wrong, and I logged both the old and corrected numbers. An evaluation you haven't tested can quietly flatter your model.
+
+### 🔴 "Did any test data leak into your prompts?"
+**Yes, and I found it in my own code review.** The semantic layer file also stored the expected value of each metric, for a test that checks the definitions against Power BI, and the whole file went into the prompt, so 7 evaluation answers (e.g. total revenue R$ 13,220,248.93) were visible to the model. I checked every stored answer: none had copied a number. But "probably not used" isn't proof, so I stripped the test values from the prompt, added a test that no answer can appear in it again, and re-ran the affected steps. The honest results dropped slightly: semantic layer 65.2% → **63.0%**, final 82.6% → **80.4%**. I report the leak-free numbers, and the history is in the progress log.
 
 ### 🟡 "Why free LLMs?"
 **Cost discipline: the whole module runs at US$0** on two free OpenRouter models (`cohere/north-mini-code:free` and `google/gemma-4-31b-it:free`). Free models are rate-limited, so the design caches every response on disk, retries with backoff and runs the evaluation in batches. It's the same engineering you'd need under a production budget or quota.

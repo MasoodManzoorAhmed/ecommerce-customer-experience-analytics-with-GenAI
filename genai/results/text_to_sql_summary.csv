@@ -1,7 +1,7 @@
 model,config,answered,correct,accuracy_pct,easy_pct,medium_pct,hard_pct,mean_latency_s,mean_prompt_tokens
 cohere/north-mini-code:free,baseline,46,21,45.7,60.0,50.0,23.1,9.89,420.0
 ollama/qwen2.5-coder-16k,a,46,18,39.1,60.0,38.9,15.4,23.82,2221.0
-ollama/qwen2.5-coder-16k,a+b,46,30,65.2,100.0,72.2,15.4,23.07,4045.0
-ollama/qwen2.5-coder-16k,a+b+c,46,35,76.1,100.0,72.2,53.8,23.97,4320.0
-ollama/qwen2.5-coder-16k,a+b+c+d,46,38,82.6,100.0,83.3,61.5,30.42,4915.0
+ollama/qwen2.5-coder-16k,a+b,46,29,63.0,93.3,72.2,15.4,23.63,3935.0
+ollama/qwen2.5-coder-16k,a+b+c,46,35,76.1,100.0,72.2,53.8,19.17,4210.0
+ollama/qwen2.5-coder-16k,a+b+c+d,46,37,80.4,100.0,77.8,61.5,23.26,4789.0
 ollama/qwen2.5-coder-16k,baseline,46,16,34.8,60.0,33.3,7.7,19.22,461.0
