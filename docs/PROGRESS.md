@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; local model: baseline 34.8% → a 39.1% → a+b 65.2% → a+b+c 76.1%; next: step d (self-correction)
+## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; local ablation complete: 34.8% → 39.1% → 65.2% → 76.1% → 82.6%; next: final model comparison (best config on north-mini-code + gemma, free quota), then accuracy-per-step chart + README
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -45,7 +45,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Step a (column descriptions) measured on the local model: **34.8% → 39.1%** (+2 questions; re-scored with the corrected matcher)
 - [x] Step a+b (semantic layer) on the local model: **39.1% → 65.2%** (+12 questions)
 - [x] Step c (few-shot retrieval): `genai/text_to_sql/examples.yaml` (28 solved examples, patterns only), `retriever.py` (all-MiniLM-L6-v2 embeddings, top 3, offline); leakage tests (`tests/test_examples.py`); local model **65.2% → 76.1%**
-- [ ] Step d (self-correction retry) on the local model
+- [x] Step d (self-correction: the error is sent back once) on the local model: **76.1% → 82.6%** (`pipeline.answer`, `tests/test_self_correction.py`)
 - [ ] Final comparison of the best configuration on qwen (local), north-mini-code and gemma-4-31b (hosted, about 46 free requests each, one per day); re-ask m03/h01 for north-mini-code then
 
 ### Day 6: Module 1 (finish) + app
@@ -161,6 +161,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | **Evaluator correction** | The example-leakage test flagged that a ±0.05 / 0.01% numeric tolerance accepted wrong answers (4.19 vs 4.16 stars; 96,478 vs 96,470 delivered orders). New rule: match at the gold answer's 2-decimal precision, or the model's own coarser rounding. All 184 stored runs re-scored from their saved SQL (`evaluate --rescore`, no LLM calls): 4 verdicts changed, all correctly to wrong (local a: e02, e14, h04; local baseline: h04); north-mini-code and local a+b unchanged | `genai/text_to_sql/evaluate.py`, `tests/test_examples.py` |
 | 2026-10-24 | **Step a+b+c: + 3 retrieved examples** (local model) | **35/46 = 76.1%** (+8: h06, h09, h10, h11, h12, m05, m14, m16; lost m04, m07, m10) · easy 100.0 · medium 72.2 · hard 53.8 (was 15.4) · 6 execution errors · mean 24.0 s · ~4,320 prompt tokens | `genai/results/text_to_sql_runs.csv` |
 | 2026-10-24 | Step c failure review (all 11 re-run) | 6 execution errors (h03, h05 avg(BOOLEAN), h07, m04, m10, m11) · negative transfer: m10 'states with the longest delivery' copied the retrieved SELLER-state example; h13 computed review instead of on-time · h01 LAG inside the filtered window (Jan = NULL) · h02, m07 logic/filter · m17 borderline (NULL payment-method row) | manual review this session |
+| 2026-10-24 | **Step a+b+c+d: + self-correction** (local model) | **38/46 = 82.6%** (+3: h05, m04, m11; no losses) · easy 100.0 · medium 83.3 · hard 61.5 · 6 queries retried, 3 fixed · mean 30.4 s · ~4,915 prompt tokens (both calls) · US$0 | `genai/results/text_to_sql_runs.csv` |
+| 2026-10-24 | **Ablation summary, local qwen2.5-coder 7B** | baseline 34.8% → +a 39.1% → +b 65.2% → +c 76.1% → +d 82.6% (largest single gain: semantic layer, +12 questions) | runs file above |
+| 2026-10-24 | Step d remaining failures (8) | 5 wrong results with no error, so no retry possible (h01 LAG in the filtered window, h02, h13 wrong metric, m07 missing delivered filter, m17 borderline NULL row) · 3 still failing after the retry (h03, m10 execution; h07 unparseable) | manual review this session |
 
 ## Decisions log
 

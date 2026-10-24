@@ -47,6 +47,9 @@ CONFIGS = {
     "a": Config("a", descriptions=True),
     "a+b": Config("a+b", descriptions=True, semantic_layer=True),
     "a+b+c": Config("a+b+c", descriptions=True, semantic_layer=True, examples=True),
+    "a+b+c+d": Config(
+        "a+b+c+d", descriptions=True, semantic_layer=True, examples=True, self_correct=True
+    ),
 }
 MAX_LISTED_VALUES = 30  # text columns with at most this many distinct values get a value list
 
@@ -100,8 +103,6 @@ def semantic_layer_text() -> str:
 def build_messages(question: str, config: Config, schema: str) -> list[dict]:
     """`schema` is schema_text() for the baseline or described_schema_text() for step a."""
     parts = [SYSTEM_PROMPT, "Schema:\n" + schema]
-    if config.self_correct:
-        raise NotImplementedError("step d is built after step a+b+c is measured")
     if config.semantic_layer:
         layer = yaml.safe_load(semantic_layer_text())
         parts.append(
@@ -117,8 +118,31 @@ def build_messages(question: str, config: Config, schema: str) -> list[dict]:
     ]
 
 
+CORRECTION_PROMPT = """Your query failed.
+Error: {error}
+Fix the query so it answers the original question. Use only the tables and columns in the schema.
+Reply with the corrected SQL inside a ```sql code block and nothing else."""
+
+
+def _check_and_run(reply_text: str) -> tuple[str, dict | None, str, str]:
+    """Guardrails then read-only execution. Returns (sql, result, error_stage, error)."""
+    try:
+        sql = check_sql(extract_sql(reply_text))
+    except GuardrailError as err:
+        return "", None, "guardrail", str(err)
+    try:
+        return sql, run_safely(sql), "", ""
+    except Exception as err:  # noqa: BLE001 - SQL errors are part of what we measure
+        return sql, None, "execution", f"{type(err).__name__}: {str(err)[:200]}"
+
+
 def answer(question: str, client: LLMClient, config: Config, schema: str | None = None) -> dict:
-    """Run the whole pipeline for one question. Never raises: failures are reported per stage."""
+    """Run the whole pipeline for one question. Never raises: failures are reported per stage.
+
+    Step d (config.self_correct): if the SQL is blocked by a guardrail or fails to run, the
+    error is sent back to the model ONCE, in the same conversation, to get a corrected query.
+    A query that runs but returns a wrong result gives no error, so it can't be corrected.
+    """
     out = {
         "question": question,
         "model": client.model,
@@ -131,28 +155,30 @@ def answer(question: str, client: LLMClient, config: Config, schema: str | None 
         "prompt_tokens": 0,
         "completion_tokens": 0,
         "latency_s": 0.0,
-        "cached": False,
+        "cached": True,
+        "retried": False,
     }
     messages = build_messages(question, config, schema or schema_for(config))
-    try:
-        reply = client.complete(messages, max_tokens=MAX_TOKENS)
-    except Exception as err:  # noqa: BLE001 - reported, not raised
-        out.update(error_stage="llm", error=f"{type(err).__name__}: {str(err)[:200]}")
-        return out
-    out.update(
-        sql_raw=reply.text,
-        prompt_tokens=reply.prompt_tokens,
-        completion_tokens=reply.completion_tokens,
-        latency_s=reply.latency_s,
-        cached=reply.cached,
-    )
-    try:
-        out["sql"] = check_sql(extract_sql(reply.text))
-    except GuardrailError as err:
-        out.update(error_stage="guardrail", error=str(err))
-        return out
-    try:
-        out["result"] = run_safely(out["sql"])
-    except Exception as err:  # noqa: BLE001 - SQL errors are part of what we measure
-        out.update(error_stage="execution", error=f"{type(err).__name__}: {str(err)[:200]}")
+    attempts = 2 if config.self_correct else 1
+    for attempt in range(attempts):
+        try:
+            reply = client.complete(messages, max_tokens=MAX_TOKENS)
+        except Exception as err:  # noqa: BLE001 - reported, not raised
+            out.update(error_stage="llm", error=f"{type(err).__name__}: {str(err)[:200]}")
+            out["cached"] = False
+            return out
+        out["prompt_tokens"] += reply.prompt_tokens
+        out["completion_tokens"] += reply.completion_tokens
+        out["latency_s"] = round(out["latency_s"] + reply.latency_s, 2)
+        out["cached"] = out["cached"] and reply.cached
+        sql, result, stage, error = _check_and_run(reply.text)
+        out.update(sql_raw=reply.text, sql=sql, result=result, error_stage=stage, error=error)
+        if not stage or attempt == attempts - 1:
+            return out
+        out["retried"] = True
+        messages = [
+            *messages,
+            {"role": "assistant", "content": reply.text},
+            {"role": "user", "content": CORRECTION_PROMPT.format(error=error)},
+        ]
     return out

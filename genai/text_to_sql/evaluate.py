@@ -116,7 +116,7 @@ def evaluate(
             print(f"stopping: reached --max-new-calls {max_new_calls} (rerun later to continue)")
             break
         out = answer(item.question, client, config, schema)
-        new_calls += 0 if out["cached"] else 1  # a failed call still used a request
+        new_calls += 0 if out["cached"] else (2 if out["retried"] else 1)  # failures count too
         if out["error_stage"] == "llm":
             # e.g. the free daily quota ran out: not the model's fault, so don't score it;
             # stop here and rerun later (finished items come back from the cache for free)
@@ -139,6 +139,7 @@ def evaluate(
                 "completion_tokens": out["completion_tokens"],
                 "latency_s": out["latency_s"],
                 "cached": out["cached"],
+                "retried": out["retried"],
             }
         )
         mark = "✓" if correct else f"✗ {stage}"
