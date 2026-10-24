@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 5 in progress: Excel report done (19/19 checks pass); next: GenAI Module 1 (needs `.env` with the LLM key)
+## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; next: LLM client (free models, cache + retry) and baseline accuracy
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -37,7 +37,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 
 ### Day 5: Excel + Module 1 (start)
 - [x] `excel/Monthly_CX_Report.xlsx` built by `scripts/build_excel_report.py` (Excel COM automation) from `sql/08_excel_report.sql`: Summary (month + state selectors, XLOOKUP KPIs vs previous month / last year, formula key messages, 2 charts), Monthly (SUMIFS table), Categories + States (PivotTables, calculated fields, slicers, PivotCharts), What-if (2 Data Tables), Checks (19 reconciliations)
-- [ ] `genai/semantic_layer.yaml`, eval set (≥ 40), baseline accuracy
+- [x] `genai/semantic_layer.yaml`: 12 metrics, 8 dimensions, 8 rules, joins; 8 core metrics proven equal to the Power BI values (`tests/test_semantic_layer.py`)
+- [x] Eval set `genai/eval/text_to_sql_eval.yaml`: 46 questions (15 easy · 18 medium · 13 hard) with gold SQL; expected results `genai/eval/text_to_sql_expected.json` via `python -m genai.text_to_sql.eval_set`; `tests/test_eval_set.py` (single SELECT, allowed tables, in sync, no ties at LIMIT cut-offs)
+- [ ] Baseline accuracy (needs the LLM client + evaluator; free models)
 
 ### Day 6: Module 1 (finish) + app
 - [ ] Steps a–d measured; guardrails + tests; model comparison
@@ -139,6 +141,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | Excel Summary, Aug 2018 (all states) | revenue R$ 838,577 (MoM −3.3%, YoY +51.2%) · 6,351 orders · on-time 93.8% (−2.8 pts MoM) · 393 late · avg review 4.31 (late 2.99 vs on time 4.40) | Excel Summary sheet |
 | 2026-10-24 | What-if (default: target on-time 96%, 50% of review gap recovered) | 183 late orders/month turned on time · avg review 4.156 → 4.184 (+0.028) · 49 fewer 1-2★ reviews/month; upper bound (99%, 100%): 4.27 stars, 202 fewer/month; base 6,597 delivered orders/month (2018) | Excel What-if sheet |
 | 2026-10-24 | Review gap after controls (OLS: customer state, category, log order value, items, sellers, promised days, freight) | −2.03 adjusted vs −2.02 raw (95,824 reviewed delivered orders) | ad-hoc check this session; supports the what-if caveat |
+| 2026-10-24 | Text-to-SQL eval set | 46 items (15 easy · 18 medium · 13 hard); 25 gold answers cross-checked against earlier verified results (e.g. revenue R$ 13,220,248.93, on-time 93.23%, MA 82.64%, risk bands 9.36/3.81/0.94%, 2018-03 18.96% late, 533 sellers for 80%, SP 38.34% of revenue) | `genai/eval/text_to_sql_expected.json` |
+| 2026-10-24 | Eval-set fairness check | 11 ranking questions checked for ties at the cut-off; 1 found (office_furniture 91.946% vs baby 91.954% both round to 91.95%) → question changed to the 2 lowest | `tests/test_eval_set.py` |
 
 ## Decisions log
 
@@ -194,6 +198,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | Excel built by Python driving Excel (pywin32 / COM); data pre-aggregated to additive counts | Real PivotTables, slicers and Data Tables, reproducible with one command; ratios rebuilt as sum ÷ sum so filters never average averages |
 | 2026-10-24 | What-if default recovers 50% of the review gap; 100% shown only as an upper bound | The late-vs-on-time gap is observational; size the claim to the evidence |
 | 2026-10-24 | **Free LLMs only, US$0, no credits** (owner's decision): `cohere/north-mini-code:free` (default) and `google/gemma-4-31b-it:free` (comparison) | Both answered a test SQL prompt correctly (1.9 s / 2.3 s); 4 other free models failed (rate-limited, empty answer, 403). Free tier is rate-limited, so: disk cache for every call, retry with backoff, small evaluation batches, several reviews per request for Module 2 labels |
+| 2026-10-24 | Eval set stored as YAML (not JSONL as first planned) | Multi-line gold SQL stays readable and reviewable; expected results generated into JSON by running the gold SQL |
+| 2026-10-24 | Semantic layer metrics carry an expression + table + filter, not full answer queries | Gives the LLM definitions without handing it the eval answers; tests run each metric and compare with Power BI |
 
 ## Blockers / notes
 - `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.

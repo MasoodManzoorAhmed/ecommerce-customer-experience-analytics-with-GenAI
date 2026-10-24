@@ -38,7 +38,7 @@ The project follows the standard analytics order: **understand the business → 
 | 8 | **Predict late deliveries** | A model that estimates, at the moment of purchase, how likely an order is to arrive late, and explains why | [Model notebook](notebooks/02_late_delivery_model.ipynb) | ✅ |
 | 9 | **Build the dashboard** | Power BI report for managers: overview, delivery and satisfaction, sellers and categories, plus a seller drill-through page; every number checked against SQL (48 checks) | `powerbi/` ([build guide](powerbi/POWERBI_GUIDE.md), [measures](powerbi/DAX_MEASURES_NOTES.md), [screenshots](#screenshots)) | ✅ |
 | 10 | **Excel management report** | Monthly KPI pack (month and state selectors), PivotTables with slicers and PivotCharts, a what-if sheet with Data Tables, and 19 reconciliation checks against SQL | `excel/Monthly_CX_Report.xlsx`, `scripts/build_excel_report.py` | ✅ |
-| 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 40+ test questions | `genai/text_to_sql/` | ⬜ |
+| 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 46 test questions | `genai/semantic_layer.yaml`, `genai/eval/`, `genai/text_to_sql/` | 🔄 in progress |
 | 12 | **Web app** | Interactive app with KPIs, late-delivery risk and the question box | `app/` | ⬜ |
 | 13 | **GenAI: review themes** | Classify what unhappy customers complain about, comparing three approaches | `genai/review_themes/` | ⬜ |
 | 14 | **Package and share** | Automated checks, final write-up, demo video | `.github/`, this README | ⬜ |

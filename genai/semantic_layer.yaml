@@ -1,0 +1,161 @@
+# Semantic layer: the business definitions shared by the SQL files, the Power BI measures and
+# the "Ask the data" LLM assistant (GenAI Module 1, improvement step b).
+#
+# Each metric gives an SQL expression, the table it reads and the filter it always needs.
+# tests/test_semantic_layer.py runs every metric as
+#     SELECT <expression> FROM <from> WHERE <filter>
+# and checks the result against the values the Power BI report is reconciled with
+# (powerbi/expected_values.csv), so one definition is guaranteed across all three tools.
+
+version: 1
+database: "DuckDB (SQL dialect: duckdb)"
+time_basis: >-
+  All dates mean the PURCHASE date (fact_orders.purchase_ts) unless a question says otherwise.
+  Month = strftime(purchase_ts, '%Y-%m') or dim_date.year_month (join on purchase_date_key = date_key).
+  Data runs from 2016-09 to 2018-10; 2016 and Sep-Oct 2018 are very thin, so monthly trends
+  should use 2017-01 to 2018-08.
+
+metrics:
+  delivered_orders:
+    description: Orders that reached the customer (status delivered with a delivery date).
+    expression: COUNT(*)
+    from: fact_orders
+    filter: is_delivered
+    synonyms: [delivered orders, completed orders]
+    expected: 96470
+
+  revenue:
+    description: >-
+      Sales value of delivered orders, excluding freight (order_value = sum of item prices).
+      For revenue by product category or by seller, use SUM(fact_order_items.price) joined to
+      delivered orders instead (an order can contain several categories and sellers).
+    expression: SUM(order_value)
+    from: fact_orders
+    filter: is_delivered
+    synonyms: [sales, GMV, turnover, income]
+    expected: 13220248.93
+
+  average_order_value:
+    description: Revenue divided by delivered orders (AOV).
+    expression: SUM(order_value) / COUNT(*)
+    from: fact_orders
+    filter: is_delivered
+    synonyms: [AOV, basket value, average basket]
+    expected: 137.04000
+
+  late_orders:
+    description: Delivered orders that arrived after the estimated delivery date.
+    expression: COUNT(*) FILTER (WHERE is_late)
+    from: fact_orders
+    filter: is_delivered
+    synonyms: [delayed orders, late deliveries]
+    expected: 6534
+
+  late_rate_pct:
+    description: >-
+      Share of delivered orders that were late, as a percentage (0-100). is_late is NULL for
+      undelivered orders, so always filter is_delivered.
+    expression: 100.0 * AVG(is_late::INT)
+    from: fact_orders
+    filter: is_delivered
+    synonyms: [late delivery rate, delay rate]
+    expected: 6.773090
+
+  on_time_rate_pct:
+    description: Share of delivered orders delivered on or before the estimated date (0-100).
+    expression: 100.0 * (1 - AVG(is_late::INT))
+    from: fact_orders
+    filter: is_delivered
+    synonyms: [on-time delivery rate, OTD, punctuality]
+    expected: 93.226910
+
+  average_review:
+    description: Mean review score (1-5 stars) of delivered orders; orders without a review are ignored.
+    expression: AVG(review_score)
+    from: fact_orders
+    filter: is_delivered
+    synonyms: [rating, average rating, review score, stars, satisfaction]
+    expected: 4.155880
+
+  low_rating_share_pct:
+    description: Share of reviewed delivered orders with 1 or 2 stars (0-100).
+    expression: 100.0 * AVG((review_score <= 2)::INT)
+    from: fact_orders
+    filter: is_delivered AND review_score IS NOT NULL
+    synonyms: [bad reviews, negative reviews, 1-2 star share]
+
+  five_star_share_pct:
+    description: Share of reviewed delivered orders with 5 stars (0-100).
+    expression: 100.0 * AVG((review_score = 5)::INT)
+    from: fact_orders
+    filter: is_delivered AND review_score IS NOT NULL
+    synonyms: [5-star share, top ratings]
+
+  review_gap:
+    description: Average review of on-time delivered orders minus that of late delivered orders (stars).
+    expression: AVG(review_score) FILTER (WHERE NOT is_late) - AVG(review_score) FILTER (WHERE is_late)
+    from: fact_orders
+    filter: is_delivered
+    expected: 2.019896
+
+  average_delivery_days:
+    description: Mean days from purchase to delivery to the customer.
+    expression: AVG(delivery_days)
+    from: fact_orders
+    filter: is_delivered
+    synonyms: [delivery time, lead time, days to deliver]
+    expected: 12.558207
+
+  repeat_customer_rate_pct:
+    description: >-
+      Share of customers (dim_customer / fact_orders.customer_key = one real person,
+      customer_unique_id) with 2 or more DELIVERED orders, among customers with at least one.
+      Do not use dim_customer.n_orders: it counts orders of any status.
+    expression: 100.0 * AVG((n >= 2)::INT)
+    from: (SELECT customer_key, COUNT(*) AS n FROM fact_orders WHERE is_delivered GROUP BY customer_key)
+    filter: "TRUE"
+    synonyms: [repeat purchase rate, returning customers]
+
+dimensions:
+  purchase_month: "strftime(fact_orders.purchase_ts, '%Y-%m')  -- or dim_date.year_month"
+  purchase_year: "year(fact_orders.purchase_ts)  -- or dim_date.year"
+  customer_state: >-
+    dim_customer.state (2-letter code, e.g. SP = Sao Paulo, RJ = Rio de Janeiro, MG = Minas Gerais).
+    "State" on its own means the CUSTOMER's state.
+  seller_state: dim_seller.state (reached through fact_order_items.seller_key)
+  product_category: >-
+    dim_product.category_en (English names such as health_beauty, bed_bath_table;
+    'unknown' when the product has no category). Reached through fact_order_items.product_key.
+  payment_method: >-
+    fact_orders.payment_type_main: credit_card, boleto, voucher, debit_card, not_defined
+    (the method that paid most of the order). Payment instalments are not available.
+  delivery_status: fact_orders.order_status (delivered, shipped, canceled, unavailable, invoiced, processing, created, approved)
+  risk_band: >-
+    fact_order_risk.risk_band (high / medium / low) from the late-delivery model. Use only
+    split = 'test' for honest model results; train and valid scores are in-sample.
+
+rules:
+  - Revenue, delivery and review metrics use delivered orders only (fact_orders.is_delivered).
+  - Revenue excludes freight. Freight is fact_orders.freight_value (or fact_order_items.freight_value per item).
+  - >-
+    "Customers" means real people (customer_key), not orders.
+    "Number of customers" = COUNT(DISTINCT customer_key).
+  - >-
+    Seller and category metrics are item-level: join fact_order_items to fact_orders on order_id.
+    An order with items from two sellers counts once for EACH seller. Count orders per seller or
+    category with COUNT(DISTINCT order_id), never COUNT(*) of item rows.
+  - >-
+    Avoid fan-out: never SUM an order-level column (order_value, freight_value, review_score)
+    after joining fact_order_items, because each order repeats once per item. Aggregate items
+    first, or use item-level columns (price) instead.
+  - Rates and shares are returned as percentages from 0 to 100, rounded to 2 decimals; money and averages rounded to 2 decimals.
+  - Seller and category rankings by on-time rate use a minimum volume (100 delivered orders per seller, 500 per category) so tiny samples don't dominate.
+  - Payment analysis covers the payment METHOD only; instalments, credit and interest are out of scope.
+
+joins:
+  - fact_orders.customer_key = dim_customer.customer_key
+  - fact_orders.purchase_date_key = dim_date.date_key
+  - fact_order_items.order_id = fact_orders.order_id
+  - fact_order_items.product_key = dim_product.product_key
+  - fact_order_items.seller_key = dim_seller.seller_key
+  - fact_order_risk.order_id = fact_orders.order_id

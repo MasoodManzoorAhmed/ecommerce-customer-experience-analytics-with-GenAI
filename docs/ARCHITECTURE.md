@@ -129,7 +129,7 @@ question ─► retrieve top-k similar solved examples (embeddings)        [step
 | `evaluate.py` | Runs the eval set for a config; **execution accuracy** = generated result matches the expected result (order-insensitive, tolerant of rounding) |
 
 ### 5.3 Evaluation protocol
-- `genai/eval/text_to_sql_eval.jsonl`: ≥ 40 items `{id, question, gold_sql, difficulty, tags}`; the expected results are produced by running `gold_sql`.
+- `genai/eval/text_to_sql_eval.yaml`: 46 items `{id, question, gold_sql, difficulty, tags}` (YAML so multi-line SQL stays readable); the expected results are produced by running `gold_sql` (`python -m genai.text_to_sql.eval_set` → `genai/eval/text_to_sql_expected.json`). Tests check every gold query is a single SELECT on allowed tables, the stored results are in sync, and no ranking question has a tie at its cut-off.
 - Configurations evaluated in order: baseline → +a → +a+b → +a+b+c → +a+b+c+d; then the best config with 2–3 models.
 - Output: `genai/results/text_to_sql_results.csv` + a chart; report accuracy, mean latency and cost per query.
 

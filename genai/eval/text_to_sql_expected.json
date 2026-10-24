@@ -1,0 +1,724 @@
+{
+ "e01": {
+  "columns": [
+   "orders"
+  ],
+  "rows": [
+   [
+    99441
+   ]
+  ]
+ },
+ "e02": {
+  "columns": [
+   "delivered_orders"
+  ],
+  "rows": [
+   [
+    96470
+   ]
+  ]
+ },
+ "e03": {
+  "columns": [
+   "revenue"
+  ],
+  "rows": [
+   [
+    13220248.93
+   ]
+  ]
+ },
+ "e04": {
+  "columns": [
+   "customers"
+  ],
+  "rows": [
+   [
+    96096
+   ]
+  ]
+ },
+ "e05": {
+  "columns": [
+   "sellers"
+  ],
+  "rows": [
+   [
+    3095
+   ]
+  ]
+ },
+ "e06": {
+  "columns": [
+   "products_without_category"
+  ],
+  "rows": [
+   [
+    610
+   ]
+  ]
+ },
+ "e07": {
+  "columns": [
+   "average_review"
+  ],
+  "rows": [
+   [
+    4.16
+   ]
+  ]
+ },
+ "e08": {
+  "columns": [
+   "boleto_orders"
+  ],
+  "rows": [
+   [
+    19191
+   ]
+  ]
+ },
+ "e09": {
+  "columns": [
+   "average_order_value"
+  ],
+  "rows": [
+   [
+    137.04
+   ]
+  ]
+ },
+ "e10": {
+  "columns": [
+   "late_orders"
+  ],
+  "rows": [
+   [
+    6534
+   ]
+  ]
+ },
+ "e11": {
+  "columns": [
+   "on_time_rate_pct"
+  ],
+  "rows": [
+   [
+    93.23
+   ]
+  ]
+ },
+ "e12": {
+  "columns": [
+   "average_delivery_days"
+  ],
+  "rows": [
+   [
+    12.56
+   ]
+  ]
+ },
+ "e13": {
+  "columns": [
+   "canceled_orders"
+  ],
+  "rows": [
+   [
+    625
+   ]
+  ]
+ },
+ "e14": {
+  "columns": [
+   "freight_value"
+  ],
+  "rows": [
+   [
+    2198145.9
+   ]
+  ]
+ },
+ "e15": {
+  "columns": [
+   "customers"
+  ],
+  "rows": [
+   [
+    12381
+   ]
+  ]
+ },
+ "m01": {
+  "columns": [
+   "year",
+   "revenue"
+  ],
+  "rows": [
+   [
+    2016,
+    40470.98
+   ],
+   [
+    2017,
+    5962605.71
+   ],
+   [
+    2018,
+    7217172.24
+   ]
+  ]
+ },
+ "m02": {
+  "columns": [
+   "state",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "SP",
+    5068477.46
+   ],
+   [
+    "RJ",
+    1759511.94
+   ],
+   [
+    "MG",
+    1552242.81
+   ],
+   [
+    "RS",
+    728798.47
+   ],
+   [
+    "PR",
+    665108.64
+   ]
+  ]
+ },
+ "m03": {
+  "columns": [
+   "month",
+   "delivered_orders"
+  ],
+  "rows": [
+   [
+    "2018-01",
+    7069
+   ],
+   [
+    "2018-02",
+    6555
+   ],
+   [
+    "2018-03",
+    7003
+   ],
+   [
+    "2018-04",
+    6798
+   ],
+   [
+    "2018-05",
+    6749
+   ],
+   [
+    "2018-06",
+    6096
+   ],
+   [
+    "2018-07",
+    6156
+   ],
+   [
+    "2018-08",
+    6351
+   ]
+  ]
+ },
+ "m04": {
+  "columns": [
+   "state",
+   "on_time_rate_pct"
+  ],
+  "rows": [
+   [
+    "MA",
+    82.64
+   ],
+   [
+    "CE",
+    86.26
+   ],
+   [
+    "BA",
+    87.83
+   ],
+   [
+    "RJ",
+    87.89
+   ],
+   [
+    "PA",
+    88.79
+   ]
+  ]
+ },
+ "m05": {
+  "columns": [
+   "category",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "health_beauty",
+    1233131.72
+   ],
+   [
+    "watches_gifts",
+    1165898.98
+   ],
+   [
+    "bed_bath_table",
+    1023434.76
+   ],
+   [
+    "sports_leisure",
+    954673.55
+   ],
+   [
+    "computers_accessories",
+    888613.62
+   ],
+   [
+    "furniture_decor",
+    711927.69
+   ],
+   [
+    "housewares",
+    615628.69
+   ],
+   [
+    "cool_stuff",
+    610204.1
+   ],
+   [
+    "auto",
+    578849.35
+   ],
+   [
+    "toys",
+    471097.49
+   ]
+  ]
+ },
+ "m06": {
+  "columns": [
+   "delivery",
+   "average_review"
+  ],
+  "rows": [
+   [
+    "late",
+    2.27
+   ],
+   [
+    "on time",
+    4.29
+   ]
+  ]
+ },
+ "m07": {
+  "columns": [
+   "payment_method",
+   "average_order_value"
+  ],
+  "rows": [
+   [
+    "credit_card",
+    143.24
+   ]
+  ]
+ },
+ "m08": {
+  "columns": [
+   "credit_card_pct"
+  ],
+  "rows": [
+   [
+    75.48
+   ]
+  ]
+ },
+ "m09": {
+  "columns": [
+   "state",
+   "sellers"
+  ],
+  "rows": [
+   [
+    "SP",
+    1849
+   ],
+   [
+    "PR",
+    349
+   ],
+   [
+    "MG",
+    244
+   ]
+  ]
+ },
+ "m10": {
+  "columns": [
+   "state",
+   "average_delivery_days"
+  ],
+  "rows": [
+   [
+    "RR",
+    29.39
+   ],
+   [
+    "AP",
+    27.19
+   ],
+   [
+    "AM",
+    26.43
+   ],
+   [
+    "AL",
+    24.54
+   ],
+   [
+    "PA",
+    23.77
+   ]
+  ]
+ },
+ "m11": {
+  "columns": [
+   "revenue"
+  ],
+  "rows": [
+   [
+    987648.07
+   ]
+  ]
+ },
+ "m12": {
+  "columns": [
+   "weekday",
+   "orders"
+  ],
+  "rows": [
+   [
+    "Monday",
+    16196
+   ]
+  ]
+ },
+ "m13": {
+  "columns": [
+   "five_star_pct"
+  ],
+  "rows": [
+   [
+    59.22
+   ]
+  ]
+ },
+ "m14": {
+  "columns": [
+   "repeat_customers"
+  ],
+  "rows": [
+   [
+    2801
+   ]
+  ]
+ },
+ "m15": {
+  "columns": [
+   "average_items"
+  ],
+  "rows": [
+   [
+    1.14
+   ]
+  ]
+ },
+ "m16": {
+  "columns": [
+   "revenue"
+  ],
+  "rows": [
+   [
+    268154.31
+   ]
+  ]
+ },
+ "m17": {
+  "columns": [
+   "payment_method",
+   "average_review"
+  ],
+  "rows": [
+   [
+    "boleto",
+    4.16
+   ],
+   [
+    "credit_card",
+    4.16
+   ],
+   [
+    "debit_card",
+    4.24
+   ],
+   [
+    "voucher",
+    4.13
+   ]
+  ]
+ },
+ "m18": {
+  "columns": [
+   "one_star_orders"
+  ],
+  "rows": [
+   [
+    9351
+   ]
+  ]
+ },
+ "h01": {
+  "columns": [
+   "month",
+   "mom_growth_pct"
+  ],
+  "rows": [
+   [
+    "2018-01",
+    27.36
+   ],
+   [
+    "2018-02",
+    -10.62
+   ],
+   [
+    "2018-03",
+    15.36
+   ],
+   [
+    "2018-04",
+    2.12
+   ],
+   [
+    "2018-05",
+    0.41
+   ],
+   [
+    "2018-06",
+    -12.48
+   ],
+   [
+    "2018-07",
+    1.39
+   ],
+   [
+    "2018-08",
+    -3.33
+   ]
+  ]
+ },
+ "h02": {
+  "columns": [
+   "seller_id",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "4869f7a5dfa277a7dca6462dcf3b52b2",
+    226987.93
+   ],
+   [
+    "53243585a1d6dc2643021fd1853d8905",
+    217940.44
+   ],
+   [
+    "4a3ca9315b744ce9f8e9374361493884",
+    196882.12
+   ],
+   [
+    "fa1c13f2614d7b5c4749cbc52fecda94",
+    190917.14
+   ],
+   [
+    "7c67e1448b00f6e969d365cea6b010ab",
+    186570.05
+   ]
+  ]
+ },
+ "h03": {
+  "columns": [
+   "seller_id",
+   "delivered_orders",
+   "on_time_rate_pct"
+  ],
+  "rows": [
+   [
+    "06a2c3af7b3aee5d69171b0e14f0ee87",
+    389,
+    80.98
+   ],
+   [
+    "88460e8ebdecbfecb5f9601833981930",
+    246,
+    82.93
+   ],
+   [
+    "1ca7077d890b907f89be8c954a02686a",
+    108,
+    83.33
+   ],
+   [
+    "e5a3438891c0bfdb9394643f95273d8e",
+    216,
+    84.26
+   ],
+   [
+    "cd68562d3f44870c08922d380acae552",
+    122,
+    84.43
+   ]
+  ]
+ },
+ "h04": {
+  "columns": [
+   "sp_revenue_share_pct"
+  ],
+  "rows": [
+   [
+    38.34
+   ]
+  ]
+ },
+ "h05": {
+  "columns": [
+   "repeat_customer_pct"
+  ],
+  "rows": [
+   [
+    3.0
+   ]
+  ]
+ },
+ "h06": {
+  "columns": [
+   "top10_share_pct"
+  ],
+  "rows": [
+   [
+    62.43
+   ]
+  ]
+ },
+ "h07": {
+  "columns": [
+   "risk_band",
+   "late_rate_pct"
+  ],
+  "rows": [
+   [
+    "high",
+    9.36
+   ],
+   [
+    "medium",
+    3.81
+   ],
+   [
+    "low",
+    0.94
+   ]
+  ]
+ },
+ "h08": {
+  "columns": [
+   "average_review"
+  ],
+  "rows": [
+   [
+    1.7
+   ]
+  ]
+ },
+ "h09": {
+  "columns": [
+   "month",
+   "late_rate_pct"
+  ],
+  "rows": [
+   [
+    "2018-03",
+    18.96
+   ]
+  ]
+ },
+ "h10": {
+  "columns": [
+   "payment_method",
+   "median_approval_hours"
+  ],
+  "rows": [
+   [
+    "boleto",
+    29.06
+   ],
+   [
+    "credit_card",
+    0.27
+   ]
+  ]
+ },
+ "h11": {
+  "columns": [
+   "sellers_for_80pct"
+  ],
+  "rows": [
+   [
+    533
+   ]
+  ]
+ },
+ "h12": {
+  "columns": [
+   "yoy_growth_pct"
+  ],
+  "rows": [
+   [
+    51.18
+   ]
+  ]
+ },
+ "h13": {
+  "columns": [
+   "category",
+   "on_time_rate_pct"
+  ],
+  "rows": [
+   [
+    "office_furniture",
+    91.95
+   ],
+   [
+    "baby",
+    91.95
+   ]
+  ]
+ }
+}

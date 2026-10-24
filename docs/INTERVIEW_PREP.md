@@ -479,6 +479,31 @@ The numbers behind it, if they dig deeper:
 
 ---
 
+## 9g. GenAI Module 1: "Ask the data" (Day 5, in progress)
+
+### 🟢 "What is a semantic layer, and why did you build one?"
+**It's one file where business terms get a single, precise definition** (`genai/semantic_layer.yaml`): what "revenue" means (delivered orders, item prices, excluding freight), what "on-time rate" means (delivered orders only, as a percentage), that "customers" means people not orders, that "state" means the customer's state. Without it, an LLM writes SQL that *runs* but answers a different question, e.g. averaging reviews over cancelled orders too. The same definitions drive the SQL and Power BI, and a test proves 8 of them return exactly the Power BI values (R$ 13,220,248.93, 93.23% on time, 4.16 average review…), so every tool tells the same story.
+
+### 🔴 "Give an example of a mistake the semantic layer prevents."
+**Fan-out.** If you join orders to order items and then `SUM(order_value)`, every order is counted once per item and revenue is inflated. The layer tells the model: use item prices for category or seller revenue, and never sum an order-level column after joining items. Another: "how many customers" should be `COUNT(DISTINCT customer_key)` (people), not a count of orders.
+
+### 🟢 "How did you build your evaluation set?"
+**46 questions written the way a manager would ask them, each with hand-written gold SQL**: 15 easy (counts, totals), 18 medium (grouping, joins, time) and 13 hard (window functions, thresholds, Pareto, the model's risk bands). Each has tags for what it tests (metric definitions, fan-out, mapping "Rio de Janeiro" to RJ…), so I can see *which kind* of question fails, not just the overall score. The expected answers come from running the gold SQL, and I cross-checked 25 of them against results already verified elsewhere in the project.
+
+### 🔴 "How do you know your evaluation set itself is right?"
+**I tested it like code.** Every gold query must be a single SELECT on the allowed tables (parsed with sqlglot), the stored answers must match a fresh run, and every "top k" question is checked for a tie at position k. That check caught a real problem: the two worst categories by on-time rate (office_furniture 91.946%, baby 91.954%) both round to 91.95%, so "which category is worst?" had no single fair answer. I changed the question to "the 2 lowest". A flawed test set gives you a wrong accuracy number however good the model is.
+
+### 🟡 "What is execution accuracy?"
+**A generated query counts as correct if running it returns the same result as the gold query**, not if the SQL text looks the same. Two very different queries can both be right (a CTE vs a subquery), so comparing text would punish correct answers. The comparison ignores row order and column names and tolerates rounding.
+
+### 🟡 "How do you stop the evaluation leaking into the prompt?"
+**The few-shot examples the model sees are a separate file that may never contain an evaluation question**, and the semantic layer gives definitions (an expression and a filter), not ready-made answer queries. Otherwise the model would be copying answers and the accuracy would be meaningless.
+
+### 🟡 "Why free LLMs?"
+**Cost discipline: the whole module runs at US$0** on two free OpenRouter models (`cohere/north-mini-code:free` and `google/gemma-4-31b-it:free`). Free models are rate-limited, so the design caches every response on disk, retries with backoff and runs the evaluation in batches. It's the same engineering you'd need under a production budget or quota.
+
+---
+
 ## 10. Coming next: questions to prepare later
 
 Fill these in as each part is built, using real results only.

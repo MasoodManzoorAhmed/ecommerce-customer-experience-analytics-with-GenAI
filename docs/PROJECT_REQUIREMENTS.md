@@ -102,7 +102,7 @@ A marketplace's reputation depends on customer reviews. Bad reviews reduce repea
 - FR-5.2 A what-if sheet: the estimated impact on average review score if the on-time rate improves.
 
 ### FR-6 GenAI Module 1: "Ask the Data" (text-to-SQL)
-- FR-6.1 An evaluation set of at least 40 questions with verified SQL and expected results (`genai/eval/text_to_sql_eval.jsonl`).
+- FR-6.1 An evaluation set of at least 40 questions with verified SQL and expected results (`genai/eval/text_to_sql_eval.yaml`, expected results in `text_to_sql_expected.json`).
 - FR-6.2 A baseline prompt (schema only) measured on **execution accuracy**.
 - FR-6.3 Improvements added one at a time and each measured: (a) column descriptions, (b) a semantic layer (`genai/semantic_layer.yaml`), (c) dynamic few-shot retrieval, (d) a self-correction retry.
 - FR-6.4 Guardrails: SELECT-only (parsed with sqlglot), allowed-tables list, automatic LIMIT, read-only connection, timeout.
