@@ -32,11 +32,11 @@
 | Database | **DuckDB** | In-process analytical SQL engine, zero setup, fast on columnar data, reads CSV/Parquet directly, ships easily with the app. (PostgreSQL would add a server without adding learning value here.) |
 | Language | **Python 3.12** | Stable versions of LightGBM, SHAP and transformers are available (3.14 is too new for some packages) |
 | Data | pandas, NumPy, pyarrow | Standard analytics stack |
-| Visualisation | matplotlib/seaborn (EDA), Plotly (app) | Static for notebooks, interactive for the app |
-| ML | scikit-learn (baseline, pipelines), **LightGBM** (main), **SHAP** | Gradient boosting is the strongest choice for tabular data; SHAP for explanations |
+| Visualisation | matplotlib (notebooks, results chart), Plotly (app, planned) | Static for notebooks, interactive for the app |
+| ML | scikit-learn (pipelines, **logistic regression**: the selected model), LightGBM (compared), **SHAP** | Both compared on a time-based split; logistic regression won under drift (decision D2); SHAP for explanations |
 | BI | **Power BI Desktop** | The most requested BI tool in the target markets |
 | Spreadsheet | Excel | Managers' everyday tool |
-| LLM access | OpenAI-compatible SDK via **OpenRouter** (or Gemini) | One client, interchangeable models for the comparison |
+| LLM access | OpenAI-compatible SDK: **OpenRouter free models** + a **local model via Ollama** (`qwen2.5-coder:7b`) | One client, interchangeable models; US$0; the local model has no request limit |
 | SQL safety | **sqlglot** | Parses SQL to enforce SELECT-only and allowed tables |
 | Embeddings | sentence-transformers (e.g. `all-MiniLM-L6-v2`; multilingual model for Portuguese reviews) | Free, local, fast |
 | Fine-tuning | Hugging Face **transformers + PEFT (LoRA)**, datasets, accelerate; Colab/Kaggle GPU | Parameter-efficient training on a free GPU |
@@ -119,19 +119,21 @@ question ─► retrieve top-k similar solved examples (embeddings)        [step
 ### 5.2 Components (`genai/text_to_sql/`)
 | File | Responsibility |
 |---|---|
-| `schema_context.py` | Builds the schema text and column descriptions from the database + a YAML description file |
-| `semantic_layer.yaml` (in `genai/`) | Business metric definitions shared with SQL and Power BI |
-| `examples.jsonl` | Solved question → SQL pairs for few-shot retrieval (**never overlapping with the eval set**) |
-| `retriever.py` | Embeds examples and returns the top-k for a question |
-| `guardrails.py` | sqlglot parsing: statement type must be SELECT; tables ⊆ allowed list; adds a LIMIT |
-| `llm_client.py` | OpenAI-compatible client, temperature 0, retries, token and cost logging |
-| `pipeline.py` | `answer(question, config) -> {sql, result, error, latency, cost}`; config flags turn steps a–d on and off |
-| `evaluate.py` | Runs the eval set for a config; **execution accuracy** = generated result matches the expected result (order-insensitive, tolerant of rounding) |
+| `semantic_layer.yaml` (in `genai/`) | Business metric definitions shared with SQL and Power BI (step b); its `expected` test values are stripped before the prompt |
+| `schema_descriptions.yaml` | Meaning, units and stored values of every column (step a) |
+| `examples.yaml` | 28 solved question → SQL pairs for few-shot retrieval (step c); tests forbid any example whose result equals an evaluation answer |
+| `retriever.py` | Embeds the examples (all-MiniLM-L6-v2, local) and returns the 3 most similar for a question |
+| `guardrails.py` | sqlglot: one SELECT only, allowed tables only, no table functions, adds a LIMIT; execution on a read-only connection with file access off and a timeout |
+| `llm_client.py` | OpenAI-compatible client (OpenRouter or local Ollama), temperature 0, disk cache, retry with backoff, pacing, stops on the free daily cap; records tokens and latency |
+| `pipeline.py` | Builds the prompt for a configuration and runs `answer(question, client, config)`: SQL, result, error stage, tokens, latency; step d retries once with the error |
+| `eval_set.py` | Loads and validates the evaluation set; runs the gold SQL into the expected results |
+| `evaluate.py` | Runs the evaluation set for a configuration and model; **execution accuracy** (order- and column-name-insensitive, compared at the answer's precision); `--rescore` re-checks stored runs without LLM calls |
+| `report.py` | Accuracy-per-step chart and summary table from the runs file |
 
 ### 5.3 Evaluation protocol
 - `genai/eval/text_to_sql_eval.yaml`: 46 items `{id, question, gold_sql, difficulty, tags}` (YAML so multi-line SQL stays readable); the expected results are produced by running `gold_sql` (`python -m genai.text_to_sql.eval_set` → `genai/eval/text_to_sql_expected.json`). Tests check every gold query is a single SELECT on allowed tables, the stored results are in sync, and no ranking question has a tie at its cut-off.
-- Configurations evaluated in order: baseline → +a → +a+b → +a+b+c → +a+b+c+d; then the best config with 2–3 models.
-- Output: `genai/results/text_to_sql_results.csv` + a chart; report accuracy, mean latency and cost per query.
+- Configurations evaluated in order on one fixed model (local `qwen2.5-coder:7b`): baseline → +a → +a+b → +a+b+c → +a+b+c+d; then the best configuration on 2 hosted free models (`cohere/north-mini-code:free`, `google/gemma-4-31b-it:free`).
+- Output: `genai/results/text_to_sql_runs.csv` (one row per question × configuration × model), `text_to_sql_summary.csv` and `accuracy_per_step.png` (`python -m genai.text_to_sql.report`); accuracy, mean latency and tokens per question (cost US$0).
 
 ## 6. GenAI Module 2 (required): review complaint themes
 
@@ -160,20 +162,20 @@ Deployment: Streamlit Community Cloud from GitHub (primary); a `Dockerfile` also
 
 ```text
 ecommerce-customer-experience-analytics/
-├─ README.md · CLAUDE.md · requirements.txt · requirements-finetune.txt · Dockerfile · .env.example · .gitignore
-├─ docs/            PROJECT_REQUIREMENTS.md, GOALS.md, ARCHITECTURE.md, PROGRESS.md, START_PROMPT.md, DATA_QUALITY_REPORT.md
-├─ data/            raw/ (git-ignored CSVs), olist.duckdb (git-ignored or small extract)
-├─ scripts/         download_data.py, build_db.py
-├─ sql/             01_staging.sql, 02_star_schema.sql, 04_business_queries.sql
+├─ README.md · CLAUDE.md · requirements.txt · requirements.lock.txt · requirements-finetune.txt · pyproject.toml · .env.example · .gitignore
+├─ docs/            PROJECT_REQUIREMENTS.md, GOALS.md, ARCHITECTURE.md, PROGRESS.md, DATA_QUALITY_REPORT.md, INTERVIEW_PREP.md, figures/
+├─ data/            raw/ (git-ignored CSVs), olist.duckdb, powerbi/*.parquet (all git-ignored, rebuilt by scripts)
+├─ scripts/         download_data.py, build_db.py, run_queries.py, export_powerbi.py, powerbi_expected_values.py, build_excel_report.py
+├─ sql/             01_staging … 08_excel_report.sql (numbered, run in order), results/
 ├─ notebooks/       00_data_quality_audit.ipynb, 01_eda.ipynb, 02_late_delivery_model.ipynb
-├─ src/             db.py, features.py, train.py, predict.py
-├─ models/          late_delivery_lgbm.pkl, metadata.json
-├─ genai/           semantic_layer.yaml, text_to_sql/, eval/, results/, review_themes/
-├─ app/             streamlit_app.py, pages/
-├─ powerbi/         *.pbix, screenshots/
+├─ src/             db.py, data_quality.py, stats.py, features.py, train.py, predict.py
+├─ models/          late_delivery_model.pkl, metadata.json, order_risk_scores.parquet
+├─ genai/           semantic_layer.yaml, text_to_sql/, eval/, results/, ollama/Modelfile, review_themes/ (Module 2)
+├─ app/             Streamlit app (planned: streamlit_app.py, pages/)
+├─ powerbi/         olist_cx_dashboard.pbix, measures.dax, DAX_MEASURES_NOTES.md, POWERBI_GUIDE.md, theme.json, expected_values.csv, screenshots/
 ├─ excel/           Monthly_CX_Report.xlsx
-├─ tests/           test_features.py, test_guardrails.py, test_eval_harness.py
-└─ .github/workflows/ci.yml
+├─ tests/           SQL build, data quality, stats, features (leakage), training, text-to-SQL (eval set, semantic layer, guardrails, examples, self-correction)
+└─ .github/workflows/ci.yml (planned, Day 7)
 ```
 
 ## 9. Configuration and secrets
@@ -188,8 +190,10 @@ DUCKDB_PATH=data/olist.duckdb
 ## 10. Testing
 
 - `test_features.py`: no forbidden columns in the feature set; seller history uses only earlier orders (temporal correctness).
-- `test_guardrails.py`: rejects DROP/DELETE/UPDATE/INSERT, multi-statements, and disallowed tables; adds a LIMIT.
-- `test_eval_harness.py`: result comparison is order-insensitive and tolerant of rounding.
+- `test_guardrails.py`: rejects DROP/DELETE/UPDATE/INSERT, multi-statements, disallowed tables and file-reading table functions; adds a LIMIT; the execution connection cannot read files.
+- `test_text_to_sql_eval.py`: result matching (order-insensitive, compared at the answer's precision), LLM cache, retries and the daily-cap stop.
+- `test_eval_set.py`, `test_semantic_layer.py`, `test_schema_descriptions.py`, `test_examples.py`, `test_self_correction.py`: the evaluation set is valid and tie-free, the semantic layer equals the Power BI values, no test answer reaches the prompt, examples can't leak answers, the retry works.
+- `test_sql_build.py`: a fresh database builds from the raw CSVs and every named query runs (skipped without the data).
 
 ## 11. Key design decisions (decision log)
 

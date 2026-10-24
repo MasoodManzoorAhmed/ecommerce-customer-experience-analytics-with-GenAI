@@ -21,7 +21,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# Large model artefacts. The small LightGBM model in models/ IS committed (the app needs it).
+# Large model artefacts. The small logistic-regression model in models/ IS committed (the app needs it).
 genai/review_themes/adapters/
 *.safetensors
 *.bin

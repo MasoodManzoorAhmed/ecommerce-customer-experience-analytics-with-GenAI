@@ -19,8 +19,8 @@
 | Worst delivery performance | On-time rate ranges from **82.64%** (Maranhão) to **95.96%** (Paraná); overall 93.23% |
 | Late-delivery model | Test PR-AUC **0.094** [95% CI 0.087–0.104] vs 0.044 random; beats LightGBM (0.073) and the best simple rule (0.059); late-class F1 0.161 vs 0.130 / 0.124. The riskiest 1% of orders are late **14.0%** of the time (3.2× average) |
 | "Ask the data" assistant | Execution accuracy **34.8% → 82.6%** on a 46-question benchmark, adding one improvement at a time (column descriptions, semantic layer, retrieved examples, self-correction) on a free local model; the semantic layer gave the largest gain (+12 questions). US$0 |
-| Review complaint themes | Macro-F1: TF-IDF _ · LoRA _ · zero-shot LLM _ |
-| Recommendation | _ |
+| Review complaint themes | *Coming in GenAI Module 2 (Days 8–10): TF-IDF vs LoRA-tuned transformer vs zero-shot LLM, macro-F1* |
+| Recommendation | *Written at the end, once Module 2 shows what unhappy customers complain about* |
 
 ## How This Project Was Built, Step by Step
 
@@ -127,13 +127,27 @@ python scripts/run_queries.py
 # 5. Open the notebooks in order: 00 (first look + audit) -> 01 (EDA) -> 02 (model)
 jupyter lab notebooks/
 
-# 6. Tests and lint
+# 6. Power BI data and reconciliation values (then open powerbi/olist_cx_dashboard.pbix)
+python scripts/export_powerbi.py
+python scripts/powerbi_expected_values.py
+
+# 7. Excel monthly report (Windows + Excel; rebuilds excel/Monthly_CX_Report.xlsx)
+python scripts/build_excel_report.py
+
+# 8. "Ask the data" evaluation (free). Local model: install Ollama (ollama.com), then
+ollama pull qwen2.5-coder:7b
+ollama create qwen2.5-coder-16k -f genai/ollama/Modelfile
+python -m genai.text_to_sql.eval_set                      # expected answers from the gold SQL
+python -m genai.text_to_sql.evaluate --config a+b+c+d --model ollama/qwen2.5-coder-16k
+python -m genai.text_to_sql.report                        # chart + summary table
+#    Hosted free models: copy .env.example to .env, add an OpenRouter key, omit --model
+
+# 9. Tests and lint
 pytest
 ruff check .
-
-# Coming later: configure the LLM key (copy .env.example to .env) and run the app
-# streamlit run app/streamlit_app.py
 ```
+
+*(The Streamlit app arrives on Day 6: `streamlit run app/streamlit_app.py`.)*
 
 ## Project Structure
 

@@ -19,11 +19,6 @@ def load_model(name: str = "late_delivery_model"):
     return model, metadata
 
 
-def prepare(x: pd.DataFrame) -> pd.DataFrame:
-    """Select model columns in training order."""
-    return x[FEATURES].copy()
-
-
 def risk_band(p: np.ndarray, threshold: float) -> np.ndarray:
     """high = at/above the cost-based threshold; medium = at least half of it; low = below."""
     return np.select([p >= threshold, p >= threshold / 2], ["high", "medium"], default="low")

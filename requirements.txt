@@ -10,7 +10,6 @@ duckdb>=1.1
 # Statistics & visualisation
 scipy>=1.12
 matplotlib>=3.8
-seaborn>=0.13
 plotly>=5.20
 
 # Machine learning
@@ -19,7 +18,7 @@ lightgbm>=4.3
 shap>=0.45
 
 # GenAI (Module 1 + labelling for Module 2)
-openai>=1.40               # OpenAI-compatible client (OpenRouter)
+openai>=1.40               # OpenAI-compatible client (OpenRouter + local Ollama)
 sqlglot>=25                # SQL parsing for guardrails
 sentence-transformers>=3.0 # embeddings for few-shot retrieval
 pyyaml>=6.0
@@ -27,7 +26,6 @@ python-dotenv>=1.0
 
 # App & Excel
 streamlit>=1.38
-openpyxl>=3.1
 pywin32>=306; sys_platform == "win32"  # builds the Excel report (real PivotTables) through Excel itself
 
 # Notebooks & quality
@@ -35,6 +33,3 @@ jupyter>=1.0
 ipykernel>=6.29
 pytest>=8.0
 ruff>=0.6
-
-# Data download
-kaggle>=1.6

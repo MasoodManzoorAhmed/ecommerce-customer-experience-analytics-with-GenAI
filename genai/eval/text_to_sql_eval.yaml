@@ -9,7 +9,7 @@
 # Rules for this file:
 # - Questions follow the business definitions in genai/semantic_layer.yaml (e.g. "revenue" means
 #   delivered orders, excluding freight), as a real user would assume.
-# - None of these questions may appear in the few-shot examples (genai/text_to_sql/examples.jsonl).
+# - None of these questions may appear in the few-shot examples (genai/text_to_sql/examples.yaml).
 # - YAML (not JSONL) so the multi-line SQL stays readable and reviewable.
 #
 # Tags: count, filter, aggregate, group, rank, time, join, window, ratio, threshold,
