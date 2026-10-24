@@ -11,7 +11,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Git repo initialised, first commit (`aa1b112`)
 - [ ] GitHub repo created (`ecommerce-customer-experience-analytics`) and pushed
 - [x] Dataset downloaded to `data/raw/` via `scripts/download_data.py` (Kaggle public endpoint, no API key needed)
-- [ ] `.env` created from `.env.example` (OpenRouter or Gemini key) (needed by Day 5). `.env` git-ignore **confirmed** with `git check-ignore`
+- [x] `.env` created from `.env.example` (OpenRouter key, free tier; `LLM_MODEL=cohere/north-mini-code:free`); git-ignored and untracked (checked); key accepted by OpenRouter (usage $0)
 
 ### Day 1: SQL
 - [x] `scripts/build_db.py` loads 9 CSVs into `data/olist.duckdb` (raw schema, all columns as text; row counts cross-checked with pandas)
@@ -193,6 +193,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | **Keep the 2017-trained model** as the saved artefact; document "refit on all recent data + monthly recalibration" as the production recipe | Refit ranks the top 1% better but over-predicts 2× after the Q1-2018 spike; recalibration can't be validated without touching the test set; Power BI page 2 stays consistent |
 | 2026-10-24 | Excel built by Python driving Excel (pywin32 / COM); data pre-aggregated to additive counts | Real PivotTables, slicers and Data Tables, reproducible with one command; ratios rebuilt as sum ÷ sum so filters never average averages |
 | 2026-10-24 | What-if default recovers 50% of the review gap; 100% shown only as an upper bound | The late-vs-on-time gap is observational; size the claim to the evidence |
+| 2026-10-24 | **Free LLMs only, US$0, no credits** (owner's decision): `cohere/north-mini-code:free` (default) and `google/gemma-4-31b-it:free` (comparison) | Both answered a test SQL prompt correctly (1.9 s / 2.3 s); 4 other free models failed (rate-limited, empty answer, 403). Free tier is rate-limited, so: disk cache for every call, retry with backoff, small evaluation batches, several reviews per request for Module 2 labels |
 
 ## Blockers / notes
 - `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.

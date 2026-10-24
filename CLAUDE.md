@@ -30,7 +30,7 @@ Business question: *"Why do customers leave bad reviews, and can we predict and 
 - Windows 11; shell: PowerShell or Git Bash. **Python 3.12** in `.venv` (Python 3.14 is also installed but too new for some packages; always use the venv).
 - Project path: `D:\ecommerce-customer-experience-analytics` (no spaces in the path).
 - Database: DuckDB file `data/olist.duckdb`; raw CSVs in `data/raw/` (both git-ignored).
-- LLM: OpenAI-compatible client via OpenRouter (or Gemini); key in `.env` as `OPENROUTER_API_KEY`; keep total spend < US$5.
+- LLM: OpenAI-compatible client via OpenRouter; key in `.env` as `OPENROUTER_API_KEY`. **Free models only, US$0 spend, no credits (owner's decision, 2026-10-24):** default `cohere/north-mini-code:free`, comparison model `google/gemma-4-31b-it:free`. Free models are rate-limited (busy periods + a daily request cap without credits): cache every response, retry with backoff, run evaluations in small batches, and batch many items per request for Module 2 labelling.
 - Module 2 fine-tuning runs on **Google Colab / Kaggle free GPU** using `requirements-finetune.txt`.
 
 ## Conventions
