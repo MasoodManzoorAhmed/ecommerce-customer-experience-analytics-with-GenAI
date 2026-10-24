@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; local model added; step a measured (37.0% → 45.7%); next: step a+b (semantic layer) on the local model
+## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; local model: baseline 37.0% → a 45.7% → a+b 65.2%; next: step c (few-shot examples) and d (self-correction)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -43,7 +43,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Baseline measured: **21/46 = 45.7%** (easy 60.0 · medium 50.0 · hard 23.1) on `cohere/north-mini-code:free`
 - [x] Local open-source model added (Ollama `qwen2.5-coder:7b`, 16k context, `genai/ollama/Modelfile`): free, offline, no request cap; becomes the main model for the step-by-step ablation
 - [x] Step a (column descriptions) measured on the local model: **37.0% → 45.7%** (+4 questions)
-- [ ] Step a+b (semantic layer), then c (few-shot examples) and d (self-correction) on the local model
+- [x] Step a+b (semantic layer) on the local model: **45.7% → 65.2%** (+9 questions net)
+- [ ] Steps c (few-shot examples) and d (self-correction) on the local model
 - [ ] Final comparison of the best configuration on qwen (local), north-mini-code and gemma-4-31b (hosted, about 46 free requests each, one per day); re-ask m03/h01 for north-mini-code then
 
 ### Day 6: Module 1 (finish) + app
@@ -154,6 +155,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | **Local model baseline** (`ollama/qwen2.5-coder-16k`, schema only) | **17/46 = 37.0%** · easy 60.0 · medium 33.3 · hard 15.4 · 8 execution errors · mean 19.2 s · ~461 prompt tokens · US$0 | `genai/results/text_to_sql_runs.csv` |
 | 2026-10-24 | **Step a: + column descriptions** (local model) | **21/46 = 45.7%** (+4: gained e06, e15, h10, m03, m04; lost m18) · easy 73.3 · medium 38.9 · hard 23.1 · execution errors 8 → 4 · mean 23.8 s · ~2,221 prompt tokens | `genai/results/text_to_sql_runs.csv` |
 | 2026-10-24 | Step-a failure review (all 25 re-run) | no false negatives; remaining causes: delivered-orders rule ignored (e03, e07, e09, e11, m01, m02, m07, m11, m13, m17, h12; m18 used order_status = 'delivered', 9,352 vs 9,351) · fan-out after joining items (m05 health_beauty R$ 36.7M vs 1.23M, m16, h02) · customer definition (m14, h05) · wrong columns/GROUP BY (4 execution errors: h03, h06, h07, h13) · h01, h09, h11 logic | manual review this session |
+| 2026-10-24 | **Step a+b: + semantic layer** (local model) | **30/46 = 65.2%** (+10: e03, e07, e09, e11, m01, m02, m06, m07, m13, m18; lost h10) · easy 100.0 · medium 72.2 · hard 15.4 · 4 execution errors · mean 23.1 s · ~4,045 prompt tokens | `genai/results/text_to_sql_runs.csv` |
+| 2026-10-24 | Step a+b failure review (all 16 re-run) | item-level revenue still without the delivered filter (m05, m16, h02: health_beauty R$ 1,258,681 vs 1,233,132) · delivered filter missing in month/YoY questions (m11, h12) · definitions (m14 counted all 93,350 customers with a delivered order; h13 not distinct orders) · logic (h01, h09, h10, h11) · 4 execution errors (h03, h05 avg(BOOLEAN), h06 GROUP BY, h07) · 1 borderline (m17 includes a NULL payment-method row; gold excludes it) | manual review this session |
 
 ## Decisions log
 
