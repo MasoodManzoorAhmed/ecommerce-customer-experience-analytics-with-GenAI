@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; local ablation complete: 34.8% → 39.1% → 65.2% → 76.1% → 82.6%; next: final model comparison (best config on north-mini-code + gemma, free quota), then accuracy-per-step chart + README
+## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; local ablation complete (34.8% → 82.6%); chart + README results done; next: final model comparison (best config on north-mini-code + gemma, within the free daily quota)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -46,6 +46,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Step a+b (semantic layer) on the local model: **39.1% → 65.2%** (+12 questions)
 - [x] Step c (few-shot retrieval): `genai/text_to_sql/examples.yaml` (28 solved examples, patterns only), `retriever.py` (all-MiniLM-L6-v2 embeddings, top 3, offline); leakage tests (`tests/test_examples.py`); local model **65.2% → 76.1%**
 - [x] Step d (self-correction: the error is sent back once) on the local model: **76.1% → 82.6%** (`pipeline.answer`, `tests/test_self_correction.py`)
+- [x] Accuracy-per-step chart `genai/results/accuracy_per_step.png` + summary CSV (`genai/text_to_sql/report.py`); README results table
 - [ ] Final comparison of the best configuration on qwen (local), north-mini-code and gemma-4-31b (hosted, about 46 free requests each, one per day); re-ask m03/h01 for north-mini-code then
 
 ### Day 6: Module 1 (finish) + app

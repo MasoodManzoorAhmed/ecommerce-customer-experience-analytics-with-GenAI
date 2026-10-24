@@ -18,7 +18,7 @@
 | Late deliveries vs reviews | Late orders average **2.27 ★** vs **4.29 ★** for on-time orders (Mann-Whitney p < 1e-300, effect size r = −0.64) |
 | Worst delivery performance | On-time rate ranges from **82.64%** (Maranhão) to **95.96%** (Paraná); overall 93.23% |
 | Late-delivery model | Test PR-AUC **0.094** [95% CI 0.087–0.104] vs 0.044 random; beats LightGBM (0.073) and the best simple rule (0.059); late-class F1 0.161 vs 0.130 / 0.124. The riskiest 1% of orders are late **14.0%** of the time (3.2× average) |
-| "Ask the data" assistant | Execution accuracy **_% → _%** across improvement steps (40-question benchmark) |
+| "Ask the data" assistant | Execution accuracy **34.8% → 82.6%** on a 46-question benchmark, adding one improvement at a time (column descriptions, semantic layer, retrieved examples, self-correction) on a free local model; the semantic layer gave the largest gain (+12 questions). US$0 |
 | Review complaint themes | Macro-F1: TF-IDF _ · LoRA _ · zero-shot LLM _ |
 | Recommendation | _ |
 
@@ -38,7 +38,7 @@ The project follows the standard analytics order: **understand the business → 
 | 8 | **Predict late deliveries** | A model that estimates, at the moment of purchase, how likely an order is to arrive late, and explains why | [Model notebook](notebooks/02_late_delivery_model.ipynb) | ✅ |
 | 9 | **Build the dashboard** | Power BI report for managers: overview, delivery and satisfaction, sellers and categories, plus a seller drill-through page; every number checked against SQL (48 checks) | `powerbi/` ([build guide](powerbi/POWERBI_GUIDE.md), [measures](powerbi/DAX_MEASURES_NOTES.md), [screenshots](#screenshots)) | ✅ |
 | 10 | **Excel management report** | Monthly KPI pack (month and state selectors), PivotTables with slicers and PivotCharts, a what-if sheet with Data Tables, and 19 reconciliation checks against SQL | `excel/Monthly_CX_Report.xlsx`, `scripts/build_excel_report.py` | ✅ |
-| 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 46 test questions | `genai/semantic_layer.yaml`, `genai/eval/`, `genai/text_to_sql/` | 🔄 in progress |
+| 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 46 test questions, 34.8% → 82.6% step by step ([chart](#ask-the-data-accuracy-per-improvement-step)) | `genai/semantic_layer.yaml`, `genai/eval/`, `genai/text_to_sql/` | 🔄 model comparison left |
 | 12 | **Web app** | Interactive app with KPIs, late-delivery risk and the question box | `app/` | ⬜ |
 | 13 | **GenAI: review themes** | Classify what unhappy customers complain about, comparing three approaches | `genai/review_themes/` | ⬜ |
 | 14 | **Package and share** | Automated checks, final write-up, demo video | `.github/`, this README | ⬜ |
@@ -86,7 +86,26 @@ Olist CSVs → DuckDB (staging → star schema → SQL analyses)
 **4. Seller detail (drill-through):** right-click any seller to see their revenue, on-time rate and reviews against all sellers.
 ![Seller detail](powerbi/screenshots/04_seller_detail.png)
 
-*(App pages and the accuracy-per-step chart will be added later.)*
+### "Ask the data": accuracy per improvement step
+
+![Accuracy per step](genai/results/accuracy_per_step.png)
+
+One fixed model (local `qwen2.5-coder:7b` via Ollama, free and offline), the same 46 questions each time, one
+improvement added per step. A query counts as correct when its **result** matches the hand-checked answer
+(execution accuracy).
+
+| Step | Added to the prompt | Accuracy | Easy (15) | Medium (18) | Hard (13) |
+|---|---|---|---|---|---|
+| Baseline | Table and column names | 34.8% | 60.0% | 33.3% | 7.7% |
+| + a | Column descriptions and stored values | 39.1% | 60.0% | 38.9% | 15.4% |
+| + b | Semantic layer (business definitions) | 65.2% | 100% | 72.2% | 15.4% |
+| + c | 3 retrieved similar examples | 76.1% | 100% | 72.2% | 53.8% |
+| + d | Self-correction (error sent back once) | **82.6%** | 100% | 83.3% | 61.5% |
+
+Source: `genai/results/text_to_sql_summary.csv` (`python -m genai.text_to_sql.report`). The model comparison
+(best configuration on two hosted free models) runs within the free daily quota and will be added here.
+
+*(App pages will be added later.)*
 
 ## Run It Locally
 
