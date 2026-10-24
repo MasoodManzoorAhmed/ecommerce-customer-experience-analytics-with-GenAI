@@ -24,6 +24,11 @@ from src.db import ROOT
 CACHE_PATH = ROOT / "genai" / "results" / "llm_cache.jsonl"
 DEFAULT_MODEL = "cohere/north-mini-code:free"
 COMPARISON_MODEL = "google/gemma-4-31b-it:free"
+# Local open-source model served by Ollama on this laptop: free, offline, no request limits.
+# "qwen2.5-coder-16k" = qwen2.5-coder:7b with a 16k-token context window (genai/ollama/Modelfile),
+# because Ollama's default window would silently cut off the longer prompts of steps a-d.
+LOCAL_MODEL = "ollama/qwen2.5-coder-16k"
+OLLAMA_BASE_URL = "http://localhost:11434/v1"
 MIN_SECONDS_BETWEEN_CALLS = 3.5  # free tier: about 20 requests per minute
 RETRY_WAITS = (5, 15, 45, 90)  # seconds before each retry
 
@@ -58,6 +63,7 @@ class LLMClient:
     def __init__(self, model: str | None = None, cache_path: Path = CACHE_PATH, client=None):
         load_dotenv(ROOT / ".env")
         self.model = model or os.getenv("LLM_MODEL") or DEFAULT_MODEL
+        self.local = self.model.startswith("ollama/")  # no key, no pacing, no quota
         self.cache_path = cache_path
         self._cache = self._load_cache()
         self._client = client  # injected in tests; created lazily otherwise
@@ -76,12 +82,20 @@ class LLMClient:
         if self._client is None:
             from openai import OpenAI
 
-            self._client = OpenAI(
-                api_key=os.environ["OPENROUTER_API_KEY"],
-                base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
-                timeout=120,
-            )
+            if self.local:  # Ollama speaks the same OpenAI format; it ignores the key
+                self._client = OpenAI(api_key="ollama", base_url=OLLAMA_BASE_URL, timeout=600)
+            else:
+                self._client = OpenAI(
+                    api_key=os.environ["OPENROUTER_API_KEY"],
+                    base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+                    timeout=120,
+                )
         return self._client
+
+    @property
+    def api_model(self) -> str:
+        """Model name as the server knows it ('ollama/' only marks a local model here)."""
+        return self.model.removeprefix("ollama/")
 
     def complete(
         self, messages: list[dict], temperature: float = 0.0, max_tokens: int = 800
@@ -100,14 +114,15 @@ class LLMClient:
     def _call_with_retries(self, messages, temperature, max_tokens) -> LLMReply:
         last_error: Exception | None = None
         for attempt in range(len(RETRY_WAITS) + 1):
-            wait = self._last_call + MIN_SECONDS_BETWEEN_CALLS - time.time()
+            gap = 0 if self.local else MIN_SECONDS_BETWEEN_CALLS
+            wait = self._last_call + gap - time.time()
             if wait > 0:
                 time.sleep(wait)
             start = time.time()
             self._last_call = start
             try:
                 resp = self._openai().chat.completions.create(
-                    model=self.model,
+                    model=self.api_model,
                     messages=messages,
                     temperature=temperature,
                     max_tokens=max_tokens,

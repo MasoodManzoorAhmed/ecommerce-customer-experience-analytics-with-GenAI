@@ -1,0 +1,8 @@
+# Local model for "Ask the data" (GenAI Module 1), served by Ollama.
+#   ollama pull qwen2.5-coder:7b
+#   ollama create qwen2.5-coder-16k -f genai/ollama/Modelfile
+# Same weights as qwen2.5-coder:7b; only the context window is raised to 16k tokens, so the
+# longer prompts (column descriptions, semantic layer, examples) are never silently truncated.
+FROM qwen2.5-coder:7b
+PARAMETER num_ctx 16384
+PARAMETER temperature 0

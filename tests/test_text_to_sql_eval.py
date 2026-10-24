@@ -51,6 +51,7 @@ class FakeOpenAI:
 
     def create(self, **kwargs):
         self.calls += 1
+        self.last_kwargs = kwargs
         if self.calls <= self.fail:
             raise type("RateLimitError", (Exception,), {"status_code": 429})("busy")
         usage = SimpleNamespace(prompt_tokens=100, completion_tokens=20)
@@ -96,3 +97,12 @@ def test_daily_quota_error_is_not_retried(tmp_path):
     with pytest.raises(Exception, match="per-day"):
         client.complete([{"role": "user", "content": "q"}])
     assert fake.calls == 1
+
+
+def test_local_ollama_model_uses_its_plain_name(tmp_path):
+    fake = FakeOpenAI()
+    path = tmp_path / "c.jsonl"
+    client = LLMClient(model="ollama/qwen2.5-coder-16k", cache_path=path, client=fake)
+    reply = client.complete([{"role": "user", "content": "q"}])
+    assert client.local and fake.last_kwargs["model"] == "qwen2.5-coder-16k"
+    assert reply.model == "ollama/qwen2.5-coder-16k"  # results and cache keep the full name
