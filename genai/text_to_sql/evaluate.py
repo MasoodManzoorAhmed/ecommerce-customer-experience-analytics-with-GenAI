@@ -26,7 +26,7 @@ import pandas as pd
 
 from genai.text_to_sql.eval_set import EXPECTED_PATH, load_eval_set
 from genai.text_to_sql.llm_client import LLMClient
-from genai.text_to_sql.pipeline import CONFIGS, answer, schema_text
+from genai.text_to_sql.pipeline import CONFIGS, answer, schema_for
 from src.db import ROOT
 
 RUNS_PATH = ROOT / "genai" / "results" / "text_to_sql_runs.csv"
@@ -103,7 +103,7 @@ def evaluate(
     client = LLMClient(model=model)
     expected = json.loads(EXPECTED_PATH.read_text(encoding="utf-8"))
     items = [i for i in load_eval_set() if not ids or i.id in ids]
-    schema = schema_text()
+    schema = schema_for(config)
     rows, new_calls = [], 0
     for item in items:
         if new_calls >= max_new_calls:

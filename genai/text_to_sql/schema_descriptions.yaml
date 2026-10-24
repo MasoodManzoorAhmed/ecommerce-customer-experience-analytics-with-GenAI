@@ -1,0 +1,117 @@
+# Column descriptions for "Ask the data" (GenAI Module 1, improvement step a).
+#
+# Step a says WHAT each table and column contains: meaning, units and stored values.
+# Business rules ("revenue counts delivered orders only") belong to the semantic layer
+# (genai/semantic_layer.yaml, step b), so the two steps can be measured separately.
+# Value lists for short text columns (e.g. state codes, order statuses) are read from the
+# database when the prompt is built, so they never go out of date.
+# tests/test_schema_descriptions.py checks that every column in the database is described.
+
+tables:
+  fact_orders:
+    description: One row per order (99,441 orders, all statuses), Sep 2016 to Oct 2018.
+    columns:
+      order_id: Order identifier (text).
+      customer_key: The customer (a real person) who placed the order; joins dim_customer.
+      purchase_date_key: Purchase date as an integer yyyymmdd; joins dim_date.date_key.
+      order_status: Current status of the order.
+      purchase_ts: Date and time the order was placed.
+      approved_ts: Date and time the payment was approved.
+      delivered_carrier_ts: Date and time the seller handed the order to the carrier.
+      delivered_customer_ts: Date and time the customer received the order (NULL if not delivered).
+      estimated_delivery_date: Delivery date promised to the customer at purchase.
+      is_delivered: TRUE if the order reached the customer (status 'delivered' with a delivery date).
+      approval_hours: Hours from purchase to payment approval.
+      delivery_days: Days from purchase to delivery to the customer (NULL if not delivered).
+      promised_days: Days from purchase to the promised delivery date.
+      is_late: TRUE if delivered after the promised date, FALSE if on time, NULL if not delivered.
+      delay_days: Delivery date minus promised date in days (positive = late, NULL if not delivered).
+      order_value: Sum of the item prices in the order, in Brazilian reais (R$), excluding freight.
+      freight_value: Total shipping cost of the order in R$.
+      n_items: Number of items in the order.
+      n_sellers: Number of different sellers in the order.
+      payment_type_main: Payment method that paid the largest part of the order.
+      n_payment_methods: Number of different payment methods used for the order.
+      review_score: Customer review from 1 (worst) to 5 (best) stars; NULL if no review.
+      has_comment: TRUE if the review includes a written comment.
+      dq_flags: Data-quality flags from the audit, separated by ';' (empty text = no issue).
+
+  fact_order_items:
+    description: One row per item in an order (112,650 rows); an order can have several items.
+    columns:
+      order_id: The order; joins fact_orders.order_id.
+      order_item_id: Position of the item within its order (1, 2, 3 ...).
+      product_key: The product; joins dim_product.
+      seller_key: The seller of this item; joins dim_seller.
+      price: Item price in R$, excluding freight.
+      freight_value: Shipping cost allocated to this item in R$.
+      shipping_limit_ts: Deadline for the seller to hand the item to the carrier.
+
+  dim_customer:
+    description: One row per real customer (96,096 people), with their latest known address.
+    columns:
+      customer_key: Customer identifier used in fact_orders.
+      customer_unique_id: Original customer id from the source data.
+      zip_prefix: First 5 digits of the postcode.
+      city: Customer city (lower case).
+      state: >-
+        Customer state as a 2-letter Brazilian code, e.g. SP = Sao Paulo, RJ = Rio de Janeiro,
+        MG = Minas Gerais, RS = Rio Grande do Sul, PR = Parana, BA = Bahia.
+      lat: Latitude of the postcode.
+      lng: Longitude of the postcode.
+      first_purchase_date: Date of the customer's first order (any status).
+      n_orders: Number of orders the customer placed, of ANY status.
+
+  dim_seller:
+    description: One row per seller (3,095 sellers).
+    columns:
+      seller_key: Seller identifier used in fact_order_items.
+      seller_id: Original seller id (32-character text).
+      zip_prefix: First 5 digits of the seller's postcode.
+      city: Seller city (lower case).
+      state: Seller state as a 2-letter Brazilian code (same codes as dim_customer.state).
+      lat: Latitude of the postcode.
+      lng: Longitude of the postcode.
+
+  dim_product:
+    description: One row per product (32,951 products).
+    columns:
+      product_key: Product identifier used in fact_order_items.
+      product_id: Original product id.
+      category_en: >-
+        Product category in English with underscores, e.g. health_beauty, bed_bath_table,
+        watches_gifts, sports_leisure, office_furniture (74 values; 'unknown' when the product
+        has no category, never NULL).
+      category_pt: Product category in Portuguese.
+      weight_g: Weight in grams.
+      volume_cm3: Volume in cubic centimetres.
+      photos_qty: Number of product photos.
+      product_name_length: Characters in the product name.
+      product_description_length: Characters in the product description.
+
+  dim_date:
+    description: One row per calendar day (852 days), for grouping by month, week or weekday.
+    columns:
+      date_key: Date as an integer yyyymmdd; joins fact_orders.purchase_date_key.
+      date: The calendar date.
+      year: Year, e.g. 2017.
+      quarter: Quarter 1 to 4.
+      month: Month number 1 to 12.
+      month_name: Month name in English.
+      year_month: Year and month as text 'YYYY-MM', e.g. '2018-03'.
+      iso_week: ISO week number.
+      weekday_num: Day of the week as a number, 1 = Monday ... 7 = Sunday.
+      weekday_name: Day of the week in English.
+      is_weekend: TRUE on Saturday and Sunday.
+
+  fact_order_risk:
+    description: >-
+      Late-delivery model score for each delivered order purchased 2017-01 to 2018-08
+      (96,203 orders), from the logistic-regression model.
+    columns:
+      order_id: The order; joins fact_orders.order_id.
+      split: Which period the order belongs to in the model's time-based split.
+      late_probability: Predicted probability (0 to 1) that the order arrives late.
+      risk_band: Risk group from the predicted probability.
+      model_version: Version of the model that produced the score.
+      top_shap_features: The 3 features that pushed this order's risk most, with their contributions.
