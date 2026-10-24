@@ -155,7 +155,7 @@ def _save(df: pd.DataFrame) -> None:
         return
     RUNS_PATH.parent.mkdir(parents=True, exist_ok=True)
     if RUNS_PATH.exists():
-        old = pd.read_csv(RUNS_PATH)
+        old = pd.read_csv(RUNS_PATH, keep_default_na=False)
         keys = set(zip(df["id"], df["config"], df["model"], strict=True))
         keep = [k not in keys for k in zip(old["id"], old["config"], old["model"], strict=True)]
         df = pd.concat([old[keep], df], ignore_index=True)
@@ -186,7 +186,8 @@ def rescore() -> pd.DataFrame:
 
 
 def summary(df: pd.DataFrame) -> pd.DataFrame:
-    """Accuracy overall and by difficulty, plus mean latency and tokens (live calls only)."""
+    """Accuracy overall and by difficulty, plus mean latency and prompt tokens per question
+    (a cached row keeps the latency and tokens of the live call that produced it)."""
     g = df.groupby(["model", "config"])
     out = g.agg(answered=("id", "size"), correct=("correct", "sum"))
     out["accuracy_pct"] = (100 * out["correct"] / out["answered"]).round(1)

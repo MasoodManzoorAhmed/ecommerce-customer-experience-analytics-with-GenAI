@@ -40,3 +40,14 @@ def test_every_configuration_builds_a_prompt(name):
     system = build_messages("How many orders?", config, schema_for(config))[0]["content"]
     assert ("TABLE fact_orders" in system) == config.descriptions
     assert ("Business definitions" in system) == config.semantic_layer
+
+
+@needs_db
+def test_semantic_layer_prompt_contains_no_test_answers():
+    """The `expected` values in semantic_layer.yaml are test metadata, several of them evaluation
+    answers (e.g. revenue 13220248.93 = item e03); they must never reach the model."""
+    config = CONFIGS["a+b"]
+    system = build_messages("What is the total revenue?", config, schema_for(config))[0]["content"]
+    assert "expected" not in system
+    for answer in ("13220248.93", "96470", "137.04", "6534", "93.22691", "4.15588"):
+        assert answer not in system

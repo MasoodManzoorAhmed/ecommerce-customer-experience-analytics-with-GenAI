@@ -23,11 +23,8 @@ from src.db import ROOT
 
 CACHE_PATH = ROOT / "genai" / "results" / "llm_cache.jsonl"
 DEFAULT_MODEL = "cohere/north-mini-code:free"
-COMPARISON_MODEL = "google/gemma-4-31b-it:free"
-# Local open-source model served by Ollama on this laptop: free, offline, no request limits.
-# "qwen2.5-coder-16k" = qwen2.5-coder:7b with a 16k-token context window (genai/ollama/Modelfile),
-# because Ollama's default window would silently cut off the longer prompts of steps a-d.
-LOCAL_MODEL = "ollama/qwen2.5-coder-16k"
+# Models whose name starts with "ollama/" run locally through Ollama (free, offline, no limits),
+# e.g. "ollama/qwen2.5-coder-16k" = qwen2.5-coder:7b with a 16k context (genai/ollama/Modelfile).
 OLLAMA_BASE_URL = "http://localhost:11434/v1"
 MIN_SECONDS_BETWEEN_CALLS = 3.5  # free tier: about 20 requests per minute
 RETRY_WAITS = (5, 15, 45, 90)  # seconds before each retry
@@ -112,8 +109,7 @@ class LLMClient:
         return reply
 
     def _call_with_retries(self, messages, temperature, max_tokens) -> LLMReply:
-        last_error: Exception | None = None
-        for attempt in range(len(RETRY_WAITS) + 1):
+        for attempt in range(len(RETRY_WAITS) + 1):  # every pass returns or raises
             gap = 0 if self.local else MIN_SECONDS_BETWEEN_CALLS
             wait = self._last_call + gap - time.time()
             if wait > 0:
@@ -137,11 +133,9 @@ class LLMClient:
                     cached=False,
                 )
             except Exception as err:  # noqa: BLE001 - classify below
-                last_error = err
                 if not _retryable(err) or attempt == len(RETRY_WAITS):
                     raise
                 time.sleep(RETRY_WAITS[attempt])
-        raise RuntimeError("unreachable") from last_error
 
 
 def _retryable(err: Exception) -> bool:

@@ -2,7 +2,8 @@
 
 import pytest
 
-from genai.text_to_sql.guardrails import GuardrailError, check_sql, extract_sql
+from genai.text_to_sql.guardrails import GuardrailError, check_sql, extract_sql, run_safely
+from src.db import DB_PATH
 
 
 def test_select_on_allowed_table_passes_and_gets_a_limit():
@@ -54,3 +55,25 @@ def test_extract_sql_from_plain_reply_with_chatter():
     assert (
         extract_sql("Sure! SELECT COUNT(*) FROM fact_orders;") == "SELECT COUNT(*) FROM fact_orders"
     )
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT * FROM read_csv('data/raw/olist_customers_dataset.csv')",
+        "SELECT content FROM read_text('.env')",
+        "SELECT * FROM glob('*')",
+        "SELECT COUNT(*) FROM fact_orders WHERE order_id IN (SELECT * FROM read_text('.env'))",
+    ],
+)
+def test_table_functions_that_read_files_are_rejected(sql):
+    with pytest.raises(GuardrailError, match="table functions"):
+        check_sql(sql)
+
+
+@pytest.mark.skipif(not DB_PATH.exists(), reason="database not built")
+def test_execution_connection_cannot_read_files_even_without_the_guardrail():
+    """Second layer: run_safely's connection has external access switched off."""
+    with pytest.raises(Exception, match="(?i)permission"):
+        run_safely("SELECT * FROM read_text('.env')")
+    assert run_safely("SELECT COUNT(*) FROM fact_orders")["rows"] == [[99441]]

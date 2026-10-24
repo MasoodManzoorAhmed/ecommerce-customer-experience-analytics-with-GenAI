@@ -97,17 +97,20 @@ def described_schema_text() -> str:
 
 
 def semantic_layer_text() -> str:
-    return SEMANTIC_LAYER_PATH.read_text(encoding="utf-8")
+    """The semantic layer as prompt text. The `expected` values are test metadata (the numbers
+    tests/test_semantic_layer.py checks); several are evaluation answers, so they must never
+    reach the model. Re-dumping the YAML also drops the file's comments."""
+    layer = yaml.safe_load(SEMANTIC_LAYER_PATH.read_text(encoding="utf-8"))
+    for metric in layer["metrics"].values():
+        metric.pop("expected", None)
+    return yaml.safe_dump(layer, sort_keys=False, allow_unicode=True)
 
 
 def build_messages(question: str, config: Config, schema: str) -> list[dict]:
     """`schema` is schema_text() for the baseline or described_schema_text() for step a."""
     parts = [SYSTEM_PROMPT, "Schema:\n" + schema]
     if config.semantic_layer:
-        layer = yaml.safe_load(semantic_layer_text())
-        parts.append(
-            "Business definitions (semantic layer):\n" + yaml.safe_dump(layer, sort_keys=False)
-        )
+        parts.append("Business definitions (semantic layer):\n" + semantic_layer_text())
     if config.examples:
         from genai.text_to_sql.retriever import examples_text  # loads the embedding model
 

@@ -3,8 +3,8 @@
 1. Exactly one statement, and it must be a query (SELECT / WITH ... SELECT / UNION).
 2. Only tables from the allowed list (the star schema); CTE names are fine.
 3. A LIMIT is added when the query has none, so a bad query can't return millions of rows.
-The query then runs on a READ-ONLY connection with a timeout (see run_safely), so even a
-query that slipped through could not change data.
+The query then runs on a READ-ONLY connection with file access switched off and a timeout
+(see run_safely), so even a query that slipped through could not change data or read files.
 """
 
 from __future__ import annotations
@@ -12,11 +12,12 @@ from __future__ import annotations
 import re
 import threading
 
+import duckdb
 import sqlglot
 from sqlglot import exp
 
 from genai.text_to_sql.eval_set import ALLOWED_TABLES, run_query
-from src.db import connect
+from src.db import DB_PATH
 
 DEFAULT_LIMIT = 1000
 TIMEOUT_S = 15
@@ -52,8 +53,11 @@ def check_sql(
     for node in tree.walk():
         if isinstance(node, (exp.Insert, exp.Update, exp.Delete, exp.Drop, exp.Create, exp.Alter)):
             raise GuardrailError(f"{node.key.upper()} is not allowed")
+    table_nodes = list(tree.find_all(exp.Table))
+    if any(not t.name or isinstance(t.this, exp.Func) for t in table_nodes):
+        raise GuardrailError("table functions (read_csv, read_text, glob ...) are not allowed")
     ctes = {cte.alias_or_name for cte in tree.find_all(exp.CTE)}
-    tables = {t.name for t in tree.find_all(exp.Table)} - ctes
+    tables = {t.name for t in table_nodes} - ctes
     outside = sorted(tables - allowed)
     if outside:
         raise GuardrailError(f"tables not allowed: {', '.join(outside)}")
@@ -63,8 +67,11 @@ def check_sql(
 
 
 def run_safely(sql: str, timeout_s: int = TIMEOUT_S) -> dict:
-    """Execute already-checked SQL on a read-only connection; interrupt it after the timeout."""
-    with connect(read_only=True) as con:
+    """Execute already-checked SQL on a read-only connection with file access switched off
+    (enable_external_access = false: no read_csv / read_text on local files, even if a query
+    slipped past check_sql), and interrupt it after the timeout."""
+    config = {"enable_external_access": False}
+    with duckdb.connect(str(DB_PATH), read_only=True, config=config) as con:
         timer = threading.Timer(timeout_s, con.interrupt)
         timer.start()
         try:
