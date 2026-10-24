@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; baseline 45.7% measured; next: re-ask m03/h01, then step a (column descriptions) when the free quota resets
+## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; local model added; step a measured (37.0% → 45.7%); next: step a+b (semantic layer) on the local model
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -41,7 +41,10 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Eval set `genai/eval/text_to_sql_eval.yaml`: 46 questions (15 easy · 18 medium · 13 hard) with gold SQL; expected results `genai/eval/text_to_sql_expected.json` via `python -m genai.text_to_sql.eval_set`; `tests/test_eval_set.py` (single SELECT, allowed tables, in sync, no ties at LIMIT cut-offs)
 - [x] LLM client (`genai/text_to_sql/llm_client.py`: disk cache, retry/backoff, pacing, stops on the daily free cap), guardrails (`guardrails.py`: sqlglot single SELECT, allowed tables, auto LIMIT, read-only + timeout), pipeline + evaluator (`pipeline.py`, `evaluate.py`: execution accuracy, order/column-name insensitive, rounding + fraction/percent tolerant); 24 new unit tests, no network
 - [x] Baseline measured: **21/46 = 45.7%** (easy 60.0 · medium 50.0 · hard 23.1) on `cohere/north-mini-code:free`
-- [ ] Re-ask m03 + h01 after their wording fix (blocked by the free daily cap on 2026-10-24); then steps a-d
+- [x] Local open-source model added (Ollama `qwen2.5-coder:7b`, 16k context, `genai/ollama/Modelfile`): free, offline, no request cap; becomes the main model for the step-by-step ablation
+- [x] Step a (column descriptions) measured on the local model: **37.0% → 45.7%** (+4 questions)
+- [ ] Step a+b (semantic layer), then c (few-shot examples) and d (self-correction) on the local model
+- [ ] Final comparison of the best configuration on qwen (local), north-mini-code and gemma-4-31b (hosted, about 46 free requests each, one per day); re-ask m03/h01 for north-mini-code then
 
 ### Day 6: Module 1 (finish) + app
 - [ ] Steps a–d measured; guardrails + tests; model comparison
@@ -148,6 +151,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | **Text-to-SQL baseline** (schema only, `cohere/north-mini-code:free`) | **21/46 = 45.7%** · easy 9/15 (60.0%) · medium 9/18 (50.0%) · hard 3/13 (23.1%) · mean latency 9.89 s · ~420 prompt tokens · US$0 | `genai/results/text_to_sql_runs.csv` |
 | 2026-10-24 | Baseline failure review (all 25 checked by re-running the SQL) | 17 ignored the delivered-orders rule · 2 used state names not codes (e15, h04) · 2 guessed stored values (e06 NULL vs 'unknown', h10 'credit card') · 1 customer definition (h05) · 1 empty reply (h07) · 1 h01 genuinely wrong · 1 false negative: m03 had the right numbers but 'January' vs '2018-01' (question ambiguous) → m03/h01 wording now says YYYY-MM | manual review this session |
 | 2026-10-24 | Free-tier behaviour | 58 requests used before 'free-models-per-day' 429; client now stops immediately on that error instead of retrying | OpenRouter response |
+| 2026-10-24 | **Local model baseline** (`ollama/qwen2.5-coder-16k`, schema only) | **17/46 = 37.0%** · easy 60.0 · medium 33.3 · hard 15.4 · 8 execution errors · mean 19.2 s · ~461 prompt tokens · US$0 | `genai/results/text_to_sql_runs.csv` |
+| 2026-10-24 | **Step a: + column descriptions** (local model) | **21/46 = 45.7%** (+4: gained e06, e15, h10, m03, m04; lost m18) · easy 73.3 · medium 38.9 · hard 23.1 · execution errors 8 → 4 · mean 23.8 s · ~2,221 prompt tokens | `genai/results/text_to_sql_runs.csv` |
+| 2026-10-24 | Step-a failure review (all 25 re-run) | no false negatives; remaining causes: delivered-orders rule ignored (e03, e07, e09, e11, m01, m02, m07, m11, m13, m17, h12; m18 used order_status = 'delivered', 9,352 vs 9,351) · fan-out after joining items (m05 health_beauty R$ 36.7M vs 1.23M, m16, h02) · customer definition (m14, h05) · wrong columns/GROUP BY (4 execution errors: h03, h06, h07, h13) · h01, h09, h11 logic | manual review this session |
 
 ## Decisions log
 
@@ -205,6 +211,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | **Free LLMs only, US$0, no credits** (owner's decision): `cohere/north-mini-code:free` (default) and `google/gemma-4-31b-it:free` (comparison) | Both answered a test SQL prompt correctly (1.9 s / 2.3 s); 4 other free models failed (rate-limited, empty answer, 403). Free tier is rate-limited, so: disk cache for every call, retry with backoff, small evaluation batches, several reviews per request for Module 2 labels |
 | 2026-10-24 | Eval set stored as YAML (not JSONL as first planned) | Multi-line gold SQL stays readable and reviewable; expected results generated into JSON by running the gold SQL |
 | 2026-10-24 | Semantic layer metrics carry an expression + table + filter, not full answer queries | Gives the LLM definitions without handing it the eval answers; tests run each metric and compare with Power BI |
+| 2026-10-24 | Main ablation model = local `qwen2.5-coder:7b` (Ollama); hosted free models only for the final comparison | The 50-requests/day free cap made one step per day; local runs are unlimited and reproducible (pinned weights). north-mini-code baseline 45.7% kept as a logged data point |
 
 ## Blockers / notes
 - `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.
