@@ -499,6 +499,15 @@ The numbers behind it, if they dig deeper:
 ### 🟡 "How do you stop the evaluation leaking into the prompt?"
 **The few-shot examples the model sees are a separate file that may never contain an evaluation question**, and the semantic layer gives definitions (an expression and a filter), not ready-made answer queries. Otherwise the model would be copying answers and the accuracy would be meaningless.
 
+### 🟢 "What was your baseline accuracy, and why so low?"
+**45.7% (21 of 46) with only the schema in the prompt**: 60% on easy, 50% on medium, 23% on hard questions. I re-ran all 25 failures to see why, and the biggest cause was business knowledge, not SQL skill: **17 failures ignored the rule that revenue, reviews and delivery metrics use delivered orders only**, e.g. total revenue R$ 13.59M instead of R$ 13.22M because canceled orders were included. The SQL ran fine and looked right, which is exactly the danger. Others: state names instead of codes (`'Rio de Janeiro'` instead of `'RJ'` → 0 customers), guessing stored values (`'credit card'` vs `credit_card`), and one empty reply. Each group maps to an improvement step: column descriptions, the semantic layer, examples and a retry.
+
+### 🔴 "Did you find any problems with your own evaluation?"
+**Yes, one false negative.** For "orders delivered in each month of 2018" the model's numbers were exactly right, but it labelled months "January" while the gold answer used "2018-01". The question never specified a format, so marking it wrong was the test's fault. I fixed the wording ("show the month as YYYY-MM") for that and one similar question, disclosed it, and re-ask only those two. I didn't loosen the matcher to accept any label, because "top 5 states" must still name the right states.
+
+### 🟡 "What happens when the free API quota runs out mid-evaluation?"
+**The run stops cleanly and resumes later at no cost.** Every reply is cached on disk, so a rerun only asks the questions not yet answered. A quota error is never scored as a wrong answer (that would quietly lower the accuracy), and the client recognises OpenRouter's "free-models-per-day" message and stops at once instead of retrying for minutes. It hit the cap after 58 requests on the first day.
+
 ### 🟡 "Why free LLMs?"
 **Cost discipline: the whole module runs at US$0** on two free OpenRouter models (`cohere/north-mini-code:free` and `google/gemma-4-31b-it:free`). Free models are rate-limited, so the design caches every response on disk, retries with backoff and runs the evaluation in batches. It's the same engineering you'd need under a production budget or quota.
 

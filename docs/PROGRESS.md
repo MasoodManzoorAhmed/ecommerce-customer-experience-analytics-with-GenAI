@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; next: LLM client (free models, cache + retry) and baseline accuracy
+## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; baseline 45.7% measured; next: re-ask m03/h01, then step a (column descriptions) when the free quota resets
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -39,7 +39,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] `excel/Monthly_CX_Report.xlsx` built by `scripts/build_excel_report.py` (Excel COM automation) from `sql/08_excel_report.sql`: Summary (month + state selectors, XLOOKUP KPIs vs previous month / last year, formula key messages, 2 charts), Monthly (SUMIFS table), Categories + States (PivotTables, calculated fields, slicers, PivotCharts), What-if (2 Data Tables), Checks (19 reconciliations)
 - [x] `genai/semantic_layer.yaml`: 12 metrics, 8 dimensions, 8 rules, joins; 8 core metrics proven equal to the Power BI values (`tests/test_semantic_layer.py`)
 - [x] Eval set `genai/eval/text_to_sql_eval.yaml`: 46 questions (15 easy · 18 medium · 13 hard) with gold SQL; expected results `genai/eval/text_to_sql_expected.json` via `python -m genai.text_to_sql.eval_set`; `tests/test_eval_set.py` (single SELECT, allowed tables, in sync, no ties at LIMIT cut-offs)
-- [ ] Baseline accuracy (needs the LLM client + evaluator; free models)
+- [x] LLM client (`genai/text_to_sql/llm_client.py`: disk cache, retry/backoff, pacing, stops on the daily free cap), guardrails (`guardrails.py`: sqlglot single SELECT, allowed tables, auto LIMIT, read-only + timeout), pipeline + evaluator (`pipeline.py`, `evaluate.py`: execution accuracy, order/column-name insensitive, rounding + fraction/percent tolerant); 24 new unit tests, no network
+- [x] Baseline measured: **21/46 = 45.7%** (easy 60.0 · medium 50.0 · hard 23.1) on `cohere/north-mini-code:free`
+- [ ] Re-ask m03 + h01 after their wording fix (blocked by the free daily cap on 2026-10-24); then steps a-d
 
 ### Day 6: Module 1 (finish) + app
 - [ ] Steps a–d measured; guardrails + tests; model comparison
@@ -143,6 +145,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | Review gap after controls (OLS: customer state, category, log order value, items, sellers, promised days, freight) | −2.03 adjusted vs −2.02 raw (95,824 reviewed delivered orders) | ad-hoc check this session; supports the what-if caveat |
 | 2026-10-24 | Text-to-SQL eval set | 46 items (15 easy · 18 medium · 13 hard); 25 gold answers cross-checked against earlier verified results (e.g. revenue R$ 13,220,248.93, on-time 93.23%, MA 82.64%, risk bands 9.36/3.81/0.94%, 2018-03 18.96% late, 533 sellers for 80%, SP 38.34% of revenue) | `genai/eval/text_to_sql_expected.json` |
 | 2026-10-24 | Eval-set fairness check | 11 ranking questions checked for ties at the cut-off; 1 found (office_furniture 91.946% vs baby 91.954% both round to 91.95%) → question changed to the 2 lowest | `tests/test_eval_set.py` |
+| 2026-10-24 | **Text-to-SQL baseline** (schema only, `cohere/north-mini-code:free`) | **21/46 = 45.7%** · easy 9/15 (60.0%) · medium 9/18 (50.0%) · hard 3/13 (23.1%) · mean latency 9.89 s · ~420 prompt tokens · US$0 | `genai/results/text_to_sql_runs.csv` |
+| 2026-10-24 | Baseline failure review (all 25 checked by re-running the SQL) | 17 ignored the delivered-orders rule · 2 used state names not codes (e15, h04) · 2 guessed stored values (e06 NULL vs 'unknown', h10 'credit card') · 1 customer definition (h05) · 1 empty reply (h07) · 1 h01 genuinely wrong · 1 false negative: m03 had the right numbers but 'January' vs '2018-01' (question ambiguous) → m03/h01 wording now says YYYY-MM | manual review this session |
+| 2026-10-24 | Free-tier behaviour | 58 requests used before 'free-models-per-day' 429; client now stops immediately on that error instead of retrying | OpenRouter response |
 
 ## Decisions log
 

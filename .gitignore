@@ -34,3 +34,6 @@ genai/review_themes/adapters/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# evaluation run logs (results are in genai/results/*.csv)
+genai/results/*.log

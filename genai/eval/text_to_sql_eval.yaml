@@ -178,7 +178,8 @@ items:
   - id: m03
     difficulty: medium
     tags: [group, time, filter]
-    question: How many orders were delivered in each month of 2018?
+    # Format added after the baseline review: "January" vs "2018-01" was a label ambiguity
+    question: How many orders were delivered in each month of 2018? Show the month as YYYY-MM.
     gold_sql: |
       SELECT strftime(purchase_ts, '%Y-%m') AS month, COUNT(*) AS delivered_orders
       FROM fact_orders
@@ -219,7 +220,9 @@ items:
   - id: m06
     difficulty: medium
     tags: [group, metric-definition]
-    question: What is the average review score of late deliveries compared with on-time deliveries?
+    question: >-
+      What is the average review score of late deliveries compared with on-time deliveries?
+      Label the two groups 'late' and 'on time'.
     gold_sql: |
       SELECT CASE WHEN is_late THEN 'late' ELSE 'on time' END AS delivery,
              ROUND(AVG(review_score), 2) AS average_review
@@ -361,7 +364,10 @@ items:
   - id: h01
     difficulty: hard
     tags: [window, time, metric-definition]
-    question: What was the month-over-month revenue growth, in percent, for each month from January to August 2018?
+    # Format added after the baseline review (same label ambiguity as m03)
+    question: >-
+      What was the month-over-month revenue growth, in percent, for each month from January
+      to August 2018? Show the month as YYYY-MM.
     gold_sql: |
       WITH monthly AS (
           SELECT strftime(purchase_ts, '%Y-%m') AS month, SUM(order_value) AS revenue
