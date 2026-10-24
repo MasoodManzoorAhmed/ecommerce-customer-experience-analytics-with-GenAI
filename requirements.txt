@@ -28,6 +28,7 @@ python-dotenv>=1.0
 # App & Excel
 streamlit>=1.38
 openpyxl>=3.1
+pywin32>=306; sys_platform == "win32"  # builds the Excel report (real PivotTables) through Excel itself
 
 # Notebooks & quality
 jupyter>=1.0

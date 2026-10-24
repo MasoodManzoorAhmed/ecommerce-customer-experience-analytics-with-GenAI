@@ -19,6 +19,7 @@ QUERY_FILES = [
     "04_business_queries.sql",
     "05_eda_queries.sql",
     "06_ml_features.sql",
+    "08_excel_report.sql",
 ]
 
 

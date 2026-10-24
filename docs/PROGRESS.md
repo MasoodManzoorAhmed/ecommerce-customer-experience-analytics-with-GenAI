@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 4 done (Power BI: 3 pages + seller drill-through, 51 measures, 48 reconciliation checks); next: Day 5 Excel + Module 1
+## Status: Day 5 in progress: Excel report done (19/19 checks pass); next: GenAI Module 1 (needs `.env` with the LLM key)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -36,7 +36,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] `powerbi/POWERBI_GUIDE.md` rewritten for the final "Storyteller" design (design system, all 4 pages as built, reconciliation)
 
 ### Day 5: Excel + Module 1 (start)
-- [ ] `excel/Monthly_CX_Report.xlsx`
+- [x] `excel/Monthly_CX_Report.xlsx` built by `scripts/build_excel_report.py` (Excel COM automation) from `sql/08_excel_report.sql`: Summary (month + state selectors, XLOOKUP KPIs vs previous month / last year, formula key messages, 2 charts), Monthly (SUMIFS table), Categories + States (PivotTables, calculated fields, slicers, PivotCharts), What-if (2 Data Tables), Checks (19 reconciliations)
 - [ ] `genai/semantic_layer.yaml`, eval set (≥ 40), baseline accuracy
 
 ### Day 6: Module 1 (finish) + app
@@ -135,6 +135,10 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | Never-delivered orders (open past promised date at cut-off) | 1,702 (train 949 · valid 352 · test 401); late rate incl. them: test 4.42% → 5.60%, valid 12.88% → 14.34%, train 5.65% → 7.67% | notebook 02 §15 |
 | 2026-10-24 | Label sensitivity (test) | mean predicted: on time 3.69% · never delivered 4.51% · delivered late 5.73%; PR-AUC lift on wider label 1.92× (vs 2.13×); re-trained on wider label 1.68× (wider) / 1.80× (delivered) | notebook 02 §15 |
 | 2026-10-24 | Refit on train + valid (C = 0.01, no tuning) | test PR-AUC 0.094 → 0.103 (paired diff CI +0.003 to +0.015) · ROC-AUC 0.727 → 0.703 · mean predicted 3.78% → 9.95% (actual 4.42%) · top 1% precision 14.0% → 18.3% (break-even 4.5:1) · at Bayes threshold 1/6: cost 8,640 vs flag-none 7,105 (2017 model 7,103) | notebook 02 §16 |
+| 2026-10-24 | Excel report reconciliation | 19/19 checks pass (15 vs SQL expected values, 4 internal); SP 2018-03 in Excel = SQL: R$ 377,034.34 · 2,971 orders · 90.58% on time · 4.13 avg review | `excel/Monthly_CX_Report.xlsx` Checks sheet; interaction test |
+| 2026-10-24 | Excel Summary, Aug 2018 (all states) | revenue R$ 838,577 (MoM −3.3%, YoY +51.2%) · 6,351 orders · on-time 93.8% (−2.8 pts MoM) · 393 late · avg review 4.31 (late 2.99 vs on time 4.40) | Excel Summary sheet |
+| 2026-10-24 | What-if (default: target on-time 96%, 50% of review gap recovered) | 183 late orders/month turned on time · avg review 4.156 → 4.184 (+0.028) · 49 fewer 1-2★ reviews/month; upper bound (99%, 100%): 4.27 stars, 202 fewer/month; base 6,597 delivered orders/month (2018) | Excel What-if sheet |
+| 2026-10-24 | Review gap after controls (OLS: customer state, category, log order value, items, sellers, promised days, freight) | −2.03 adjusted vs −2.02 raw (95,824 reviewed delivered orders) | ad-hoc check this session; supports the what-if caveat |
 
 ## Decisions log
 
@@ -187,6 +191,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-19 | Ruff line-length 100, rules E/F/I/UP/B (`pyproject.toml`); `.gitattributes` forces LF | One lint config for local + CI; consistent line endings for Linux deployment |
 | 2026-10-24 | Keep the delivered-only label; report never-delivered orders separately (5.60% "late or never delivered" on test) | Re-training on the wider label lowers lift (different causes: ~2/3 shipped and lost, ~1/3 never shipped) |
 | 2026-10-24 | **Keep the 2017-trained model** as the saved artefact; document "refit on all recent data + monthly recalibration" as the production recipe | Refit ranks the top 1% better but over-predicts 2× after the Q1-2018 spike; recalibration can't be validated without touching the test set; Power BI page 2 stays consistent |
+| 2026-10-24 | Excel built by Python driving Excel (pywin32 / COM); data pre-aggregated to additive counts | Real PivotTables, slicers and Data Tables, reproducible with one command; ratios rebuilt as sum ÷ sum so filters never average averages |
+| 2026-10-24 | What-if default recovers 50% of the review gap; 100% shown only as an upper bound | The late-vs-on-time gap is observational; size the claim to the evidence |
 
 ## Blockers / notes
 - `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.

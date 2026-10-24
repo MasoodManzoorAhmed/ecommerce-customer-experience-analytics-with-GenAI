@@ -37,7 +37,7 @@ The project follows the standard analytics order: **understand the business → 
 | 7 | **Explore and test the patterns** | Charts plus statistical tests: do late deliveries really cause worse reviews, and how big is the effect? | [EDA notebook](notebooks/01_eda.ipynb) | ✅ |
 | 8 | **Predict late deliveries** | A model that estimates, at the moment of purchase, how likely an order is to arrive late, and explains why | [Model notebook](notebooks/02_late_delivery_model.ipynb) | ✅ |
 | 9 | **Build the dashboard** | Power BI report for managers: overview, delivery and satisfaction, sellers and categories, plus a seller drill-through page; every number checked against SQL (48 checks) | `powerbi/` ([build guide](powerbi/POWERBI_GUIDE.md), [measures](powerbi/DAX_MEASURES_NOTES.md), [screenshots](#screenshots)) | ✅ |
-| 10 | **Excel management report** | Monthly report with pivot tables and a what-if sheet | `excel/` | ⬜ |
+| 10 | **Excel management report** | Monthly KPI pack (month and state selectors), PivotTables with slicers and PivotCharts, a what-if sheet with Data Tables, and 19 reconciliation checks against SQL | `excel/Monthly_CX_Report.xlsx`, `scripts/build_excel_report.py` | ✅ |
 | 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 40+ test questions | `genai/text_to_sql/` | ⬜ |
 | 12 | **Web app** | Interactive app with KPIs, late-delivery risk and the question box | `app/` | ⬜ |
 | 13 | **GenAI: review themes** | Classify what unhappy customers complain about, comparing three approaches | `genai/review_themes/` | ⬜ |
@@ -54,7 +54,7 @@ Every number in this README comes from code that was actually run; the full log 
 | **EDA** | Data quality, delivery delays, late vs on-time reviews (statistical test), state and seasonality patterns |
 | **Late-delivery model** | Purchase-time features only (no leakage), time-based split, logistic regression vs LightGBM (logistic regression won), cost-based threshold, SHAP |
 | **Power BI dashboard** | Executive overview · Delivery & satisfaction · Sellers & categories · Seller detail (drill-through); 51 documented DAX measures; titles and insights update with the year and state slicers |
-| **Excel report** | Monthly management report with PivotTables, slicers and a what-if sheet |
+| **Excel report** | Monthly management report: KPIs vs previous month and last year, PivotTables with slicers, a what-if on the review value of on-time delivery, and a checks sheet (19/19 pass); rebuilt from the database by one script |
 | **GenAI 1: Ask the data** | Natural-language questions → safe, read-only SQL; improved step by step (descriptions, semantic layer, few-shot retrieval, self-correction) and measured on a benchmark |
 | **GenAI 2: Review themes** | Complaint-theme classification of Portuguese reviews: TF-IDF vs LoRA-tuned transformer vs zero-shot LLM |
 | **Streamlit app** | KPIs, late-delivery risk, Ask the data, review themes |

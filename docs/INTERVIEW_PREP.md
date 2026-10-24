@@ -442,6 +442,43 @@ The numbers behind it, if they dig deeper:
 
 ---
 
+## 9f. Excel monthly management report (Day 5)
+
+### 🟢 "Walk me through your Excel report."
+**It's the monthly pack an executive opens: pick a month and a state in two yellow cells, and everything updates.** The Summary compares the month with the previous month and the same month last year (8 KPIs, coloured green or red depending on whether a change is good for that metric), writes three key messages as formulas, and shows two trend charts. Behind it: a Monthly KPI table, two PivotTable sheets with slicers and PivotCharts (revenue by month × category; on-time % by state), a What-if sheet, and a Checks sheet. For August 2018: revenue R$ 838,577 (−3.3% on July, +51.2% on August 2017), on-time 93.8% (−2.8 pts).
+
+### 🔴 "Why did you feed Excel aggregated data instead of the raw orders?"
+**Because ratios must be rebuilt from additive pieces, never averaged.** The data sheets hold only counts and sums per month × state (556 rows) and month × state × category (11,670 rows): delivered orders, late orders, revenue, review sum, review count. Every ratio (on-time %, average review, AOV) is a formula *sum ÷ sum*, so it's correct for any filter. If I had stored a ready-made on-time % per state and averaged it, a state with 500 orders would weigh the same as SP with 40,000. It also keeps the file under 1 MB instead of 100k rows.
+
+### 🔴 "How do you get on-time % in a PivotTable?"
+**A calculated field: `on_time_orders / delivered_orders`.** PivotTable calculated fields work on the *sums* of each field, so each state's value is its on-time orders ÷ its orders, which is exactly right. (The trap: putting a pre-computed percentage column in the pivot and choosing "Average" gives a wrong, unweighted number.) The state table matches Power BI: MA 82.6% worst, PR 96.0% best.
+
+### 🟡 "Which Excel functions did you use, and why?"
+- **SUMIFS** in the Monthly table, with the state criterion `IF(sel_state="All","*",sel_state)`: the `*` wildcard means "any state", so one formula serves both "All" and a single state.
+- **XLOOKUP** on the Summary to fetch the chosen, previous and last-year month (clearer than VLOOKUP: no column numbers, a built-in "not found" value).
+- **LET** to build the previous-month key once (`2018-01` → `2017-12`), **VSTACK / SORT / UNIQUE** for the state drop-down list, **data validation** lists for the inputs, **named ranges** (`sel_month`, `wi_target`) so formulas read like sentences.
+- **Conditional formatting**: green/red changes depending on each metric's "better when" direction, colour scales, data bars.
+
+### 🟢 "How does your what-if sheet work?"
+**It estimates how much the average review would rise if more orders arrived on time.** New average = today's average + (extra on-time share) × (share of the review gap recovered) × (on-time review − late review). Inputs: target on-time rate (default 96%; today 93.23%) and how much of the 2.02-star gap a rescued order recovers (default 50%). Result: about **183 late orders a month turned on time, average review 4.156 → 4.184 (+0.028), and 49 fewer 1-2 star reviews a month**. Two Excel **Data Tables** (What-If Analysis) show every combination from 94% to 99% and 25% to 100%; the upper bound is 4.27 stars and 202 fewer 1-2 star reviews a month.
+
+### 🔴 "+0.03 stars is tiny. Why should anyone care?"
+**Because the average hides where the change happens.** Late orders are only 6.8% of orders, so fixing many of them still moves the overall average a little, but each rescued order goes from a typical 2.27 towards 4.29 stars, and 1-2 star reviews (the ones that hurt reputation) fall by 49 a month in the default case. I'd present the 1-2 star count to a manager, not the average. I also chose a cautious default (50% of the gap) and show 100% only as an upper bound.
+
+### 🔴 "Isn't the what-if just assuming lateness *causes* bad reviews?"
+**Yes, so I sized the claim to the evidence.** The gap is large (−2.02 stars), it holds within every state, and it barely moves when I control for state, category, order value and basket size (−2.03 adjusted vs −2.02 raw). That's strong evidence, but still observational: orders that get rescued might differ from typical on-time ones. So the default recovers only half of the gap, the sheet says "plan on 25-50%", and the recommendation is to confirm with an A/B test before committing budget.
+
+### 🟡 "How do you know the workbook is correct?"
+**A Checks sheet with 19 reconciliations, all PASS.** 15 compare workbook formulas with values computed independently in SQL (the same expected values the Power BI report is checked against: 96,470 orders, R$ 13,220,248.93, 93.23% on time, 4.16 average review, August 2018 MoM −3.33% and YoY +51.18%, rating shares), and 4 are internal consistency checks (category data = order data, on-time + late = delivered). I also tested the interaction: São Paulo, March 2018 in Excel (R$ 377,034.34, 2,971 orders, 90.6% on time) equals the SQL result exactly. The Summary shows "19 of 19 pass", linked to the sheet.
+
+### 🟡 "Why did you build it with Python instead of by hand?"
+**So it's reproducible: one command rebuilds it from the database** (`python scripts/build_excel_report.py`). The script drives Excel itself (COM automation), so the PivotTables, slicers and Data Tables are genuine Excel objects that a manager can use, not a static export. When the data is refreshed, the report is rebuilt the same way, with the checks re-run.
+
+### 🟡 "Your YoY growth shows +727% in January 2018. Is that right?"
+**It's arithmetically right but not meaningful, so the report says so.** January 2017 had only 750 delivered orders because the marketplace was still ramping up (vs 7,069 in January 2018). The Monthly sheet tells readers to use YoY only from about May 2018 onwards, when the base month is mature. Spotting misleading-but-correct numbers is part of the job.
+
+---
+
 ## 10. Coming next: questions to prepare later
 
 Fill these in as each part is built, using real results only.
@@ -453,7 +490,7 @@ Fill these in as each part is built, using real results only.
 - *(Answered in section 9d.)*
 
 **Day 5: Excel**
-- How does your what-if sheet work?
+- *(Answered in section 9f.)*
 
 **Days 5–6: GenAI Module 1 (text-to-SQL)**
 - How did you evaluate the LLM? What is execution accuracy?
