@@ -38,6 +38,15 @@ def test_numeric_text_matches_numbers_and_missing_result_fails():
     assert not results_match(GOLD, None)
 
 
+def test_values_are_compared_at_the_precision_shown():
+    star = r(["avg"], [[4.16]])
+    assert results_match(star, r(["x"], [[4.1559]]))  # same at 2 decimals
+    assert results_match(star, r(["x"], [[4.2]]))  # rounded to 1 decimal by the model
+    assert not results_match(star, r(["x"], [[4.19]]))  # a different answer
+    assert not results_match(star, r(["x"], [[4.09]]))
+    assert results_match(r(["rev"], [[13220248.93]]), r(["x"], [[13220249]]))
+
+
 def test_revenue_including_freight_is_not_accepted():
     assert not results_match(r(["revenue"], [[13220248.93]]), r(["x"], [[15418394.83]]))
 

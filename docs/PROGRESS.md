@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; local model: baseline 37.0% → a 45.7% → a+b 65.2%; next: step c (few-shot examples) and d (self-correction)
+## Status: Day 5 in progress: Excel report done; Module 1 semantic layer + 46-question eval set done; local model: baseline 34.8% → a 39.1% → a+b 65.2% → a+b+c 76.1%; next: step d (self-correction)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -42,9 +42,10 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] LLM client (`genai/text_to_sql/llm_client.py`: disk cache, retry/backoff, pacing, stops on the daily free cap), guardrails (`guardrails.py`: sqlglot single SELECT, allowed tables, auto LIMIT, read-only + timeout), pipeline + evaluator (`pipeline.py`, `evaluate.py`: execution accuracy, order/column-name insensitive, rounding + fraction/percent tolerant); 24 new unit tests, no network
 - [x] Baseline measured: **21/46 = 45.7%** (easy 60.0 · medium 50.0 · hard 23.1) on `cohere/north-mini-code:free`
 - [x] Local open-source model added (Ollama `qwen2.5-coder:7b`, 16k context, `genai/ollama/Modelfile`): free, offline, no request cap; becomes the main model for the step-by-step ablation
-- [x] Step a (column descriptions) measured on the local model: **37.0% → 45.7%** (+4 questions)
-- [x] Step a+b (semantic layer) on the local model: **45.7% → 65.2%** (+9 questions net)
-- [ ] Steps c (few-shot examples) and d (self-correction) on the local model
+- [x] Step a (column descriptions) measured on the local model: **34.8% → 39.1%** (+2 questions; re-scored with the corrected matcher)
+- [x] Step a+b (semantic layer) on the local model: **39.1% → 65.2%** (+12 questions)
+- [x] Step c (few-shot retrieval): `genai/text_to_sql/examples.yaml` (28 solved examples, patterns only), `retriever.py` (all-MiniLM-L6-v2 embeddings, top 3, offline); leakage tests (`tests/test_examples.py`); local model **65.2% → 76.1%**
+- [ ] Step d (self-correction retry) on the local model
 - [ ] Final comparison of the best configuration on qwen (local), north-mini-code and gemma-4-31b (hosted, about 46 free requests each, one per day); re-ask m03/h01 for north-mini-code then
 
 ### Day 6: Module 1 (finish) + app
@@ -152,11 +153,14 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | **Text-to-SQL baseline** (schema only, `cohere/north-mini-code:free`) | **21/46 = 45.7%** · easy 9/15 (60.0%) · medium 9/18 (50.0%) · hard 3/13 (23.1%) · mean latency 9.89 s · ~420 prompt tokens · US$0 | `genai/results/text_to_sql_runs.csv` |
 | 2026-10-24 | Baseline failure review (all 25 checked by re-running the SQL) | 17 ignored the delivered-orders rule · 2 used state names not codes (e15, h04) · 2 guessed stored values (e06 NULL vs 'unknown', h10 'credit card') · 1 customer definition (h05) · 1 empty reply (h07) · 1 h01 genuinely wrong · 1 false negative: m03 had the right numbers but 'January' vs '2018-01' (question ambiguous) → m03/h01 wording now says YYYY-MM | manual review this session |
 | 2026-10-24 | Free-tier behaviour | 58 requests used before 'free-models-per-day' 429; client now stops immediately on that error instead of retrying | OpenRouter response |
-| 2026-10-24 | **Local model baseline** (`ollama/qwen2.5-coder-16k`, schema only) | **17/46 = 37.0%** · easy 60.0 · medium 33.3 · hard 15.4 · 8 execution errors · mean 19.2 s · ~461 prompt tokens · US$0 | `genai/results/text_to_sql_runs.csv` |
-| 2026-10-24 | **Step a: + column descriptions** (local model) | **21/46 = 45.7%** (+4: gained e06, e15, h10, m03, m04; lost m18) · easy 73.3 · medium 38.9 · hard 23.1 · execution errors 8 → 4 · mean 23.8 s · ~2,221 prompt tokens | `genai/results/text_to_sql_runs.csv` |
+| 2026-10-24 | **Local model baseline** (`ollama/qwen2.5-coder-16k`, schema only) | **16/46 = 34.8%** (first scored 37.0%; h04 re-scored wrong) · easy 60.0 · medium 33.3 · hard 7.7 · 8 execution errors · mean 19.2 s · ~461 prompt tokens · US$0 | `genai/results/text_to_sql_runs.csv` |
+| 2026-10-24 | **Step a: + column descriptions** (local model) | **18/46 = 39.1%** (first scored 45.7%; e02, e14, h04 re-scored wrong) · gained e06, e15, h10, m03, m04; lost m18 · easy 60.0 · medium 38.9 · hard 15.4 · execution errors 8 → 4 · mean 23.8 s · ~2,221 prompt tokens | `genai/results/text_to_sql_runs.csv` |
 | 2026-10-24 | Step-a failure review (all 25 re-run) | no false negatives; remaining causes: delivered-orders rule ignored (e03, e07, e09, e11, m01, m02, m07, m11, m13, m17, h12; m18 used order_status = 'delivered', 9,352 vs 9,351) · fan-out after joining items (m05 health_beauty R$ 36.7M vs 1.23M, m16, h02) · customer definition (m14, h05) · wrong columns/GROUP BY (4 execution errors: h03, h06, h07, h13) · h01, h09, h11 logic | manual review this session |
 | 2026-10-24 | **Step a+b: + semantic layer** (local model) | **30/46 = 65.2%** (+10: e03, e07, e09, e11, m01, m02, m06, m07, m13, m18; lost h10) · easy 100.0 · medium 72.2 · hard 15.4 · 4 execution errors · mean 23.1 s · ~4,045 prompt tokens | `genai/results/text_to_sql_runs.csv` |
 | 2026-10-24 | Step a+b failure review (all 16 re-run) | item-level revenue still without the delivered filter (m05, m16, h02: health_beauty R$ 1,258,681 vs 1,233,132) · delivered filter missing in month/YoY questions (m11, h12) · definitions (m14 counted all 93,350 customers with a delivered order; h13 not distinct orders) · logic (h01, h09, h10, h11) · 4 execution errors (h03, h05 avg(BOOLEAN), h06 GROUP BY, h07) · 1 borderline (m17 includes a NULL payment-method row; gold excludes it) | manual review this session |
+| 2026-10-24 | **Evaluator correction** | The example-leakage test flagged that a ±0.05 / 0.01% numeric tolerance accepted wrong answers (4.19 vs 4.16 stars; 96,478 vs 96,470 delivered orders). New rule: match at the gold answer's 2-decimal precision, or the model's own coarser rounding. All 184 stored runs re-scored from their saved SQL (`evaluate --rescore`, no LLM calls): 4 verdicts changed, all correctly to wrong (local a: e02, e14, h04; local baseline: h04); north-mini-code and local a+b unchanged | `genai/text_to_sql/evaluate.py`, `tests/test_examples.py` |
+| 2026-10-24 | **Step a+b+c: + 3 retrieved examples** (local model) | **35/46 = 76.1%** (+8: h06, h09, h10, h11, h12, m05, m14, m16; lost m04, m07, m10) · easy 100.0 · medium 72.2 · hard 53.8 (was 15.4) · 6 execution errors · mean 24.0 s · ~4,320 prompt tokens | `genai/results/text_to_sql_runs.csv` |
+| 2026-10-24 | Step c failure review (all 11 re-run) | 6 execution errors (h03, h05 avg(BOOLEAN), h07, m04, m10, m11) · negative transfer: m10 'states with the longest delivery' copied the retrieved SELLER-state example; h13 computed review instead of on-time · h01 LAG inside the filtered window (Jan = NULL) · h02, m07 logic/filter · m17 borderline (NULL payment-method row) | manual review this session |
 
 ## Decisions log
 
@@ -215,6 +219,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | Eval set stored as YAML (not JSONL as first planned) | Multi-line gold SQL stays readable and reviewable; expected results generated into JSON by running the gold SQL |
 | 2026-10-24 | Semantic layer metrics carry an expression + table + filter, not full answer queries | Gives the LLM definitions without handing it the eval answers; tests run each metric and compare with Power BI |
 | 2026-10-24 | Main ablation model = local `qwen2.5-coder:7b` (Ollama); hosted free models only for the final comparison | The 50-requests/day free cap made one step per day; local runs are unlimited and reproducible (pinned weights). north-mini-code baseline 45.7% kept as a logged data point |
+| 2026-10-24 | Few-shot examples stored as YAML; retrieval with a local embedding model | Readable SQL; offline and free; tests forbid examples whose result equals any evaluation answer (prevents leakage) |
+| 2026-10-24 | Numeric matching at the gold answer's precision (was ±0.05 / 0.01%) | The looser tolerance accepted wrong answers; all stored runs re-scored |
 
 ## Blockers / notes
 - `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.

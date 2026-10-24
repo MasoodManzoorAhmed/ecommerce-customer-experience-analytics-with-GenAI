@@ -46,6 +46,7 @@ CONFIGS = {
     "baseline": Config("baseline"),
     "a": Config("a", descriptions=True),
     "a+b": Config("a+b", descriptions=True, semantic_layer=True),
+    "a+b+c": Config("a+b+c", descriptions=True, semantic_layer=True, examples=True),
 }
 MAX_LISTED_VALUES = 30  # text columns with at most this many distinct values get a value list
 
@@ -99,13 +100,17 @@ def semantic_layer_text() -> str:
 def build_messages(question: str, config: Config, schema: str) -> list[dict]:
     """`schema` is schema_text() for the baseline or described_schema_text() for step a."""
     parts = [SYSTEM_PROMPT, "Schema:\n" + schema]
-    if config.examples or config.self_correct:
-        raise NotImplementedError("steps c and d are built after step a+b is measured")
+    if config.self_correct:
+        raise NotImplementedError("step d is built after step a+b+c is measured")
     if config.semantic_layer:
         layer = yaml.safe_load(semantic_layer_text())
         parts.append(
             "Business definitions (semantic layer):\n" + yaml.safe_dump(layer, sort_keys=False)
         )
+    if config.examples:
+        from genai.text_to_sql.retriever import examples_text  # loads the embedding model
+
+        parts.append("Examples of similar solved questions:\n\n" + examples_text(question))
     return [
         {"role": "system", "content": "\n\n".join(parts)},
         {"role": "user", "content": question},

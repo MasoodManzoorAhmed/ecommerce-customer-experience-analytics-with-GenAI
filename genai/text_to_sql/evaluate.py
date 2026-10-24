@@ -3,8 +3,9 @@
 A generated query is CORRECT when its result matches the gold query's result:
 - row order is ignored, and column names don't matter;
 - extra columns in the answer are allowed (each gold column must be found in it);
-- numbers match within max(0.05, 0.01%) (so 93.2269 = 93.23 and 4.2 = 4.16 at the precision
-  shown), and a rate given as a fraction matches the same rate as a percentage (0.9323 = 93.23);
+- numbers match at the precision of the gold answer (2 decimals): 93.2269 = 93.23, but
+  4.19 != 4.16; an answer rounded MORE coarsely also matches (4.2 = 4.16, 13220249 = 13220248.93);
+  a rate given as a fraction matches the same rate as a percentage (0.9323 = 93.23);
 - text is compared case-insensitively; numeric text ('2017') matches the number 2017;
 - the number of rows must be the same (a "top 5" answer with 27 rows is wrong).
 
@@ -53,7 +54,12 @@ def _equal(gold, pred, scale: float) -> bool:
         return gold is None and pred is None
     if isinstance(gold, float) and isinstance(pred, float):
         pred = pred * scale
-        return abs(gold - pred) <= max(0.05, 1e-4 * abs(gold))
+        if abs(gold - pred) <= 0.005 + 1e-9 * abs(gold):  # same value at 2 decimals
+            return True
+        for k in (1, 0):  # the answer was rounded to k decimals: compare at that precision
+            if abs(pred - round(pred, k)) < 1e-9 and round(gold, k) == round(pred, k):
+                return True
+        return False
     return gold == pred
 
 
@@ -155,6 +161,29 @@ def _save(df: pd.DataFrame) -> None:
     df.sort_values(["model", "config", "id"]).to_csv(RUNS_PATH, index=False)
 
 
+def rescore() -> pd.DataFrame:
+    """Re-check every stored run with the CURRENT matching rules by re-executing its saved SQL.
+    Needed whenever the evaluator changes, so all configurations are scored the same way.
+    Uses no LLM calls."""
+    from genai.text_to_sql.guardrails import run_safely
+
+    expected = json.loads(EXPECTED_PATH.read_text(encoding="utf-8"))
+    runs = pd.read_csv(RUNS_PATH, keep_default_na=False)
+    changed = 0
+    for i, row in runs.iterrows():
+        if row["error_stage"] not in ("", "wrong_result"):
+            continue  # guardrail / execution failures don't depend on the matcher
+        correct = results_match(expected[row["id"]], run_safely(row["sql"]))
+        if correct != (str(row["correct"]) == "True"):
+            changed += 1
+            print(f"  {row['model']} {row['config']} {row['id']}: {row['correct']} -> {correct}")
+        runs.at[i, "correct"] = correct
+        runs.at[i, "error_stage"] = "" if correct else "wrong_result"
+    runs.to_csv(RUNS_PATH, index=False)
+    print(f"re-scored {len(runs)} rows, {changed} verdicts changed")
+    return runs
+
+
 def summary(df: pd.DataFrame) -> pd.DataFrame:
     """Accuracy overall and by difficulty, plus mean latency and tokens (live calls only)."""
     g = df.groupby(["model", "config"])
@@ -174,7 +203,13 @@ def main() -> int:
     parser.add_argument("--model", default=None, help="defaults to LLM_MODEL in .env")
     parser.add_argument("--ids", default="", help="comma-separated item ids (default: all)")
     parser.add_argument("--max-new-calls", type=int, default=46)
+    parser.add_argument("--rescore", action="store_true", help="re-check stored runs, no LLM")
     args = parser.parse_args()
+    if args.rescore:
+        runs = rescore()
+        runs["correct"] = runs["correct"].astype(str) == "True"
+        print(summary(runs).to_string())
+        return 0
     ids = [i.strip() for i in args.ids.split(",") if i.strip()] or None
     df = evaluate(args.config, args.model, ids, args.max_new_calls)
     if not df.empty:

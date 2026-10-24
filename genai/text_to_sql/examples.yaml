@@ -1,0 +1,277 @@
+# Solved question -> SQL examples for "Ask the data" (GenAI Module 1, improvement step c).
+#
+# For each new question, the retriever (retriever.py) picks the 3 most similar examples by
+# meaning (sentence embeddings) and shows them to the model before the question.
+#
+# Rule: examples teach PATTERNS (delivered filter, item-level counting, month-over-month,
+# cumulative share ...) on DIFFERENT metrics, dimensions or periods than the evaluation set.
+# They must never be evaluation questions in disguise: tests/test_examples.py checks that no
+# example's result equals any evaluation answer, and that no example question is a near-copy.
+
+examples:
+  - question: How many orders have been shipped but not yet delivered?
+    sql: |
+      SELECT COUNT(*) AS shipped_orders
+      FROM fact_orders
+      WHERE order_status = 'shipped'
+
+  - question: What was the average freight cost per delivered order in 2017?
+    sql: |
+      SELECT ROUND(AVG(freight_value), 2) AS average_freight
+      FROM fact_orders
+      WHERE is_delivered AND year(purchase_ts) = 2017
+
+  - question: How many delivered orders arrived late in 2017?
+    sql: |
+      SELECT COUNT(*) AS late_orders
+      FROM fact_orders
+      WHERE is_delivered AND is_late AND year(purchase_ts) = 2017
+
+  - question: What is the late-delivery rate, in percent, for orders paid by boleto?
+    sql: |
+      SELECT ROUND(100.0 * AVG(is_late::INT), 2) AS late_rate_pct
+      FROM fact_orders
+      WHERE is_delivered AND payment_type_main = 'boleto'
+
+  - question: What is the average review score of delivered orders from customers in Minas Gerais?
+    sql: |
+      SELECT ROUND(AVG(f.review_score), 2) AS average_review
+      FROM fact_orders AS f
+      JOIN dim_customer AS c ON c.customer_key = f.customer_key
+      WHERE f.is_delivered AND c.state = 'MG'
+
+  - question: What was the revenue in each quarter of 2017?
+    sql: |
+      SELECT quarter(purchase_ts) AS quarter, ROUND(SUM(order_value), 2) AS revenue
+      FROM fact_orders
+      WHERE is_delivered AND year(purchase_ts) = 2017
+      GROUP BY quarter
+      ORDER BY quarter
+
+  - question: Which 3 states have the most delivered orders?
+    sql: |
+      SELECT c.state, COUNT(*) AS delivered_orders
+      FROM fact_orders AS f
+      JOIN dim_customer AS c ON c.customer_key = f.customer_key
+      WHERE f.is_delivered
+      GROUP BY c.state
+      ORDER BY delivered_orders DESC
+      LIMIT 3
+
+  - question: Which 3 product categories appear in the most delivered orders?
+    sql: |
+      -- item-level: count each order once per category with COUNT(DISTINCT order_id)
+      SELECT p.category_en AS category, COUNT(DISTINCT i.order_id) AS delivered_orders
+      FROM fact_order_items AS i
+      JOIN fact_orders AS f ON f.order_id = i.order_id
+      JOIN dim_product AS p ON p.product_key = i.product_key
+      WHERE f.is_delivered
+      GROUP BY p.category_en
+      ORDER BY delivered_orders DESC
+      LIMIT 3
+
+  - question: What was the revenue of the health_beauty category in 2018?
+    sql: |
+      -- category revenue = item prices of DELIVERED orders (never sum order_value after a join)
+      SELECT ROUND(SUM(i.price), 2) AS revenue
+      FROM fact_order_items AS i
+      JOIN fact_orders AS f ON f.order_id = i.order_id
+      JOIN dim_product AS p ON p.product_key = i.product_key
+      WHERE f.is_delivered AND p.category_en = 'health_beauty' AND year(f.purchase_ts) = 2018
+
+  - question: Which 3 sellers have the most delivered orders? Show the seller id and the number of orders.
+    sql: |
+      SELECT s.seller_id, COUNT(DISTINCT i.order_id) AS delivered_orders
+      FROM fact_order_items AS i
+      JOIN fact_orders AS f ON f.order_id = i.order_id
+      JOIN dim_seller AS s ON s.seller_key = i.seller_key
+      WHERE f.is_delivered
+      GROUP BY s.seller_id
+      ORDER BY delivered_orders DESC
+      LIMIT 3
+
+  - question: What is the average number of delivery days for each seller state? Show the 3 slowest.
+    sql: |
+      -- one row per (seller state, order) so an order with 2 items isn't counted twice
+      WITH seller_state_orders AS (
+          SELECT DISTINCT s.state, f.order_id, f.delivery_days
+          FROM fact_order_items AS i
+          JOIN fact_orders AS f ON f.order_id = i.order_id
+          JOIN dim_seller AS s ON s.seller_key = i.seller_key
+          WHERE f.is_delivered
+      )
+      SELECT state, ROUND(AVG(delivery_days), 2) AS average_delivery_days
+      FROM seller_state_orders
+      GROUP BY state
+      ORDER BY average_delivery_days DESC
+      LIMIT 3
+
+  - question: What was the month-over-month change, in percent, in the number of delivered orders for each month of 2017? Show the month as YYYY-MM.
+    sql: |
+      -- compute LAG over ALL months first, then keep the wanted ones (QUALIFY), so January
+      -- still sees December of the previous year
+      WITH monthly AS (
+          SELECT strftime(purchase_ts, '%Y-%m') AS month, COUNT(*) AS orders
+          FROM fact_orders
+          WHERE is_delivered
+          GROUP BY month
+      )
+      SELECT month, ROUND(100.0 * (orders / LAG(orders) OVER (ORDER BY month) - 1), 2) AS mom_change_pct
+      FROM monthly
+      QUALIFY month BETWEEN '2017-01' AND '2017-12'
+      ORDER BY month
+
+  - question: By what percentage did the number of delivered orders grow in March 2018 compared with March 2017?
+    sql: |
+      SELECT ROUND(100.0 * (
+                 COUNT(*) FILTER (WHERE strftime(purchase_ts, '%Y-%m') = '2018-03')
+               / COUNT(*) FILTER (WHERE strftime(purchase_ts, '%Y-%m') = '2017-03') - 1), 2)
+             AS yoy_growth_pct
+      FROM fact_orders
+      WHERE is_delivered
+
+  - question: Which month of 2017 had the most delivered orders? Show the month as YYYY-MM.
+    sql: |
+      SELECT strftime(purchase_ts, '%Y-%m') AS month, COUNT(*) AS delivered_orders
+      FROM fact_orders
+      WHERE is_delivered AND year(purchase_ts) = 2017
+      GROUP BY month
+      ORDER BY delivered_orders DESC
+      LIMIT 1
+
+  - question: What percentage of reviewed delivered orders include a written comment?
+    sql: |
+      -- booleans must be cast to INT before AVG in DuckDB
+      SELECT ROUND(100.0 * AVG(has_comment::INT), 2) AS comment_pct
+      FROM fact_orders
+      WHERE is_delivered AND review_score IS NOT NULL
+
+  - question: What percentage of all orders were canceled?
+    sql: |
+      SELECT ROUND(100.0 * AVG((order_status = 'canceled')::INT), 2) AS canceled_pct
+      FROM fact_orders
+
+  - question: How many customers placed at least 3 delivered orders?
+    sql: |
+      SELECT COUNT(*) AS customers
+      FROM (
+          SELECT customer_key
+          FROM fact_orders
+          WHERE is_delivered
+          GROUP BY customer_key
+          HAVING COUNT(*) >= 3
+      )
+
+  - question: On average, how many delivered orders does a customer place?
+    sql: |
+      SELECT ROUND(AVG(n), 3) AS orders_per_customer
+      FROM (
+          SELECT customer_key, COUNT(*) AS n
+          FROM fact_orders
+          WHERE is_delivered
+          GROUP BY customer_key
+      )
+
+  - question: Among states with at least 1,000 delivered orders, which 3 have the highest average review score?
+    sql: |
+      SELECT c.state, ROUND(AVG(f.review_score), 2) AS average_review
+      FROM fact_orders AS f
+      JOIN dim_customer AS c ON c.customer_key = f.customer_key
+      WHERE f.is_delivered
+      GROUP BY c.state
+      HAVING COUNT(*) >= 1000
+      ORDER BY AVG(f.review_score) DESC
+      LIMIT 3
+
+  - question: Among sellers with at least 50 delivered orders, which 3 have the highest average review? Show the seller id and the average review.
+    sql: |
+      WITH seller_orders AS (
+          SELECT DISTINCT i.seller_key, f.order_id, f.review_score
+          FROM fact_order_items AS i
+          JOIN fact_orders AS f ON f.order_id = i.order_id
+          WHERE f.is_delivered
+      )
+      SELECT s.seller_id, ROUND(AVG(so.review_score), 2) AS average_review
+      FROM seller_orders AS so
+      JOIN dim_seller AS s ON s.seller_key = so.seller_key
+      GROUP BY s.seller_id
+      HAVING COUNT(*) >= 50
+      ORDER BY AVG(so.review_score) DESC
+      LIMIT 3
+
+  - question: What share of revenue, in percent, comes from the 5 states with the highest revenue?
+    sql: |
+      WITH state_revenue AS (
+          SELECT c.state, SUM(f.order_value) AS revenue
+          FROM fact_orders AS f
+          JOIN dim_customer AS c ON c.customer_key = f.customer_key
+          WHERE f.is_delivered
+          GROUP BY c.state
+      )
+      SELECT ROUND(100.0 * SUM(revenue) FILTER (WHERE rank <= 5) / SUM(revenue), 2) AS top5_share_pct
+      FROM (SELECT revenue, ROW_NUMBER() OVER (ORDER BY revenue DESC) AS rank FROM state_revenue)
+
+  - question: What is the smallest number of product categories that together make up half of revenue?
+    sql: |
+      -- running total of the categories ranked by revenue, counting those reached before 50%
+      WITH category_revenue AS (
+          SELECT p.category_en, SUM(i.price) AS revenue
+          FROM fact_order_items AS i
+          JOIN fact_orders AS f ON f.order_id = i.order_id
+          JOIN dim_product AS p ON p.product_key = i.product_key
+          WHERE f.is_delivered
+          GROUP BY p.category_en
+      ),
+      ranked AS (
+          SELECT revenue,
+                 SUM(revenue) OVER (ORDER BY revenue DESC, category_en
+                                    ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS revenue_before,
+                 SUM(revenue) OVER () AS total
+          FROM category_revenue
+      )
+      SELECT COUNT(*) AS categories_for_half
+      FROM ranked
+      WHERE COALESCE(revenue_before, 0) < 0.5 * total
+
+  - question: In the late-delivery model's test period, what is the average predicted late probability in each risk band?
+    sql: |
+      SELECT risk_band, ROUND(AVG(late_probability), 4) AS average_predicted_probability
+      FROM fact_order_risk
+      WHERE split = 'test'
+      GROUP BY risk_band
+      ORDER BY average_predicted_probability DESC
+
+  - question: What is the median number of delivery days for each payment method?
+    sql: |
+      SELECT payment_type_main AS payment_method, MEDIAN(delivery_days) AS median_delivery_days
+      FROM fact_orders
+      WHERE is_delivered AND payment_type_main IS NOT NULL
+      GROUP BY payment_type_main
+      ORDER BY payment_method
+
+  - question: What is the average review score of orders that arrived more than 10 days before the estimated date?
+    sql: |
+      SELECT ROUND(AVG(review_score), 2) AS average_review
+      FROM fact_orders
+      WHERE is_delivered AND delay_days < -10
+
+  - question: How many delivered orders were placed on each day of the week?
+    sql: |
+      SELECT dayname(purchase_ts) AS weekday, COUNT(*) AS delivered_orders
+      FROM fact_orders
+      WHERE is_delivered
+      GROUP BY weekday
+      ORDER BY delivered_orders DESC
+
+  - question: How many sellers are located in the state of Parana?
+    sql: |
+      SELECT COUNT(*) AS sellers
+      FROM dim_seller
+      WHERE state = 'PR'
+
+  - question: What was the revenue from customers in Rio Grande do Sul in 2018?
+    sql: |
+      SELECT ROUND(SUM(f.order_value), 2) AS revenue
+      FROM fact_orders AS f
+      JOIN dim_customer AS c ON c.customer_key = f.customer_key
+      WHERE f.is_delivered AND c.state = 'RS' AND year(f.purchase_ts) = 2018
