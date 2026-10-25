@@ -360,3 +360,33 @@ RETURN
         & FORMAT ( ( OT - POT ) * 100, "+0.0;-0.0" ) & " pts) · Review " & FORMAT ( R, "0.00" )
         & "★ vs " & FORMAT ( PR, "0.00" ) & "★ (" & FORMAT ( R - PR, "+0.00;-0.00" ) & ")"
 // One-line verdict for the drill-through insight strip; updates for whichever seller is drilled into.
+
+// ---------------------------------------------------------------- Review themes (GenAI Module 2)
+// Table fact_review_theme (review_id, order_id, theme, source), related fact_review_theme[order_id] -> fact_orders[order_id].
+// A review can cover several orders with the same text, so reviews are counted with DISTINCTCOUNT.
+
+Theme Reviews =
+DISTINCTCOUNT ( fact_review_theme[review_id] )
+// Bad reviews (1-3 stars, with a comment) classified into a theme. 14,246 all years
+
+Theme Share % =
+DIVIDE (
+    [Theme Reviews],
+    CALCULATE (
+        [Theme Reviews],
+        REMOVEFILTERS ( fact_review_theme[theme], fact_review_theme[Theme Label] )
+    )
+)
+// Share of bad reviews in the theme on the axis. Removes only the two theme columns: REMOVEFILTERS on the
+// whole table would also clear year/state filters (its expanded table includes fact_orders and the dims).
+// Wrong or missing item 25.6% all years
+
+Product Complaint Share % =
+DIVIDE (
+    CALCULATE (
+        [Theme Reviews],
+        fact_review_theme[theme] IN { "wrong_or_missing_item", "damaged", "product_quality" }
+    ),
+    [Theme Reviews]
+)
+// Share of bad reviews about the product itself. 45.3% all years; 64.9% on orders delivered on time

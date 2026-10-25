@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 6: Streamlit app built and tested locally; Module 1 local ablation complete, leak-free (34.8% → 80.4%); chart + README results done; next: final model comparison (best config on north-mini-code + gemma, within the free daily quota)
+## Status: Day 8-10: Module 2 complete (LLM 0.781 > LoRA 0.714 > TF-IDF 0.697 macro-F1; cascade labels all 14,246 bad reviews → fact_review_theme, app page, Power BI guide); Module 1 hosted run 93.5%; next: second-annotator kappa, Gemma comparison, build Power BI page 5, GitHub + CI + deployment
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -63,7 +63,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] LoRA fine-tune (CPU) + zero-shot comparison (zero-shot LLM wins on quality)
 - [ ] Second-annotator agreement (Cohen's kappa) after the free-cap reset
 - [x] Apply to all reviews → `fact_review_theme` → app Themes page (LoRA labels; cascade LLM pass running)
-- [ ] Cascade final labels · Power BI theme visual
+- [x] Cascade final labels (published 2026-10-26)
+- [x] Power BI review-themes page: data export, 3 measures, guide (Step 8b)
+- [ ] Build Page 5 in the .pbix (owner, by hand) + screenshot
 - [ ] Final README · 3-minute demo video · LinkedIn post
 
 ## Results log (real numbers only)
@@ -181,6 +183,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-25 | Olist quirk: one review can cover several orders | 14,375 review-order rows = 14,246 distinct reviews (129 repeats, always the same text) → key (review_id, order_id) in `fact_review_theme`; the app counts distinct reviews; the cascade sends each text to the LLM once | `genai/review_themes/apply.py` |
 | 2026-10-25 | LoRA labels for all reviews (published, interim) | 14,375 rows in 20.7 min on CPU · never_arrived 25.3% · wrong_or_missing 23.4% · other 15.3% · late 13.4% · quality 11.8% · damaged 10.7% (row shares) · 38.3% of reviews below 0.7 confidence → cascade sends 5,450 of 14,246 reviews to the LLM | `fact_review_theme`, `app/data/review_themes.parquet` |
 | 2026-10-25 | Insight (LoRA labels): on-time orders | 9,476 bad reviews on orders delivered on time: 65.5% are about the product (wrong/missing, damaged, quality); 10.5% (993) say 'never arrived' although the order is marked delivered | app Themes page |
+| 2026-10-26 | **Cascade final labels (published)** | 5,450 of 14,246 distinct reviews (38.3%) sent to local qwen 7B in 273 requests (5.0 s/review, 0 incomplete batches, ~7.6 h); the LLM changed LoRA's label on 45.8% of them · final shares (distinct reviews): wrong_or_missing_item 25.6% · never_arrived 25.1% · other 16.9% · late_delivery 12.7% · damaged 10.0% · product_quality 9.7% · on-time orders (9,476 bad reviews): 64.9% about the product, 9.9% (936) 'never arrived' although marked delivered | `fact_review_theme`, `app/data/review_themes.parquet` |
 | 2026-10-25 | Second annotator (north-mini-code) | 3 of 10 batches done when the 50/day free cap hit; resumes from the cache after the reset | `results/llm_cache.jsonl` |
 
 ## Decisions log

@@ -479,7 +479,7 @@ The numbers behind it, if they dig deeper:
 
 ---
 
-## 9g. GenAI Module 1: "Ask the data" (Day 5, in progress)
+## 9g. GenAI Module 1: "Ask the data" (Days 5-6)
 
 ### 🟢 "What is a semantic layer, and why did you build one?"
 **It's one file where business terms get a single, precise definition** (`genai/semantic_layer.yaml`): what "revenue" means (delivered orders, item prices, excluding freight), what "on-time rate" means (delivered orders only, as a percentage), that "customers" means people not orders, that "state" means the customer's state. Without it, an LLM writes SQL that *runs* but answers a different question, e.g. averaging reviews over cancelled orders too. The same definitions drive the SQL and Power BI, and a test proves 8 of them return exactly the Power BI values (R$ 13,220,248.93, 93.23% on time, 4.16 average review…), so every tool tells the same story.
@@ -541,7 +541,7 @@ The numbers behind it, if they dig deeper:
 ## 9h. Streamlit app (Day 6)
 
 ### 🟢 "Show me your app."
-**Four pages, one story.** *Overview*: KPIs, the monthly trend and the core finding (reviews fall from the first day late), filterable by year and state. *Late-delivery risk*: pick a real order from the unseen test period, see its predicted probability, a SHAP explanation of why, and what-if sliders that re-score it live (e.g. the seller in the customer's state: 46% → 36%). *Ask the data*: a plain-English question becomes SQL, which is always shown, checked by guardrails and run read-only. *Review themes*: Module 2, coming next.
+**Four pages, one story.** *Overview*: KPIs, the monthly trend and the core finding (reviews fall from the first day late), filterable by year and state. *Late-delivery risk*: pick a real order from the unseen test period, see its predicted probability, a SHAP explanation of why, and what-if sliders that re-score it live (e.g. the seller in the customer's state: 46% → 36%). *Ask the data*: a plain-English question becomes SQL, which is always shown, checked by guardrails and run read-only. *Review themes*: what unhappy customers complain about (Module 2), with example reviews and the model comparison.
 
 ### 🟡 "How do you make sure the app shows the same numbers as Power BI?"
 **Same definitions, same extract, and a test.** The app reads the same month × state extract as the Excel report and rebuilds every ratio as sum ÷ sum after filtering. `tests/test_app.py` checks its totals equal the Power BI reconciliation values (R$ 13,220,248.93 · 96,470 orders · 93.23% on time · 4.16 ★), the delay chart equals SQL query q08, and the 2018 filter gives the same revenue as the evaluation gold answer.
@@ -551,6 +551,43 @@ The numbers behind it, if they dig deeper:
 
 ### 🟡 "Design choices?"
 One design system across Power BI, Excel and the app (deep teal, coral only for problems). Charts have one y-axis each (no dual axes), direct labels only where they help, and every headline sentence is computed from the data, so it stays true when the filters change. Fonts come from the visitor's own system, so no request goes to Google (privacy under GDPR), and the layout works on a phone.
+
+---
+
+## 9i. GenAI Module 2: review complaint themes (Days 8-10)
+
+### 🟢 "What does Module 2 do, in one sentence?"
+**It reads every bad review (14,246, in Portuguese) and gives it one complaint theme, so managers can see why customers are unhappy without reading them.** Six themes: never arrived, wrong or missing item, damaged, late delivery, product quality, other. The top two are wrong or missing item (25.6%) and never arrived (25.1%).
+
+### 🟢 "Which approaches did you compare, and who won?"
+**Three, scored on the same 200 hand-labelled reviews none of them trained on.** Zero-shot LLM (local Qwen 7B, definitions in the prompt): macro-F1 **0.781**. LoRA-tuned BERTimbau: 0.714. TF-IDF + logistic regression: 0.697. **The LLM won on quality; I report that even though I'd planned LoRA as the "main" model.** The trade-off is speed: 3.9 s vs 0.11 s vs 0.0006 s per review.
+
+### 🟡 "Why macro-F1 and not accuracy?"
+**Themes are unequal in size.** A model that is good on the big themes and ignores "late delivery" (14 of 200 gold reviews) can still look accurate. Macro-F1 averages the F1 of each theme with equal weight, so a missed rare theme drags the score down. My test shows it: a model that predicts only "other" on a 90/10 split is 90% accurate but has a macro-F1 under 0.2.
+
+### 🔴 "Where did your training labels come from? Isn't that circular?"
+**From the LLM: a teacher-student setup (distillation).** The LLM labelled 1,500 training reviews; TF-IDF and LoRA learned from them. The students are judged only on the 200 human-checked gold reviews, never on LLM labels, so the score is honest. The catch: a student learns the teacher's mistakes (the teacher is ~79% right), so it rarely beats the teacher. That is exactly what happened.
+
+### 🔴 "What is LoRA, and why use it?"
+**Freeze the pre-trained model and train small add-on matrices instead.** BERTimbau has 109 million weights; LoRA trained 0.3 million (0.27%), placed inside the attention layers, plus the new classification head. With only 1,500 labels, training everything would overfit and need a GPU; LoRA trained in 21 minutes on a laptop CPU and the adapter is a few MB.
+
+### 🟡 "Why BERTimbau?"
+**It is BERT pre-trained on Brazilian Portuguese, the language of the reviews,** and at 110M parameters it is small enough for CPU training. A multilingual model would spread its capacity over 100 languages.
+
+### 🔴 "What is the cascade, and how did you pick 70%?"
+**LoRA labels everything and says how sure it is (its top softmax probability); reviews under 70% go to the LLM.** On the gold set that sent 38% of reviews to the LLM and scored 0.789, the same as the LLM alone (0.781). **Honest caveat:** I scanned thresholds on the gold set, so the 0.789 is optimistic; with 200 reviews a ±0.01 difference is noise. I claim "LLM-level quality with 38% of the LLM calls", not "better than the LLM". In practice the LLM changed LoRA's answer on 46% of the reviews it re-checked, so the unsure cases really were the hard ones. It cut the run from about 20 hours to 7.6.
+
+### 🔴 "Who labelled the gold set, and how do you know it's right?"
+**I (the AI assistant) labelled it with a written guide and a precedence rule,** and a crosstab with delivery data was consistent (damaged/wrong/quality reviews are mostly on-time orders; never arrived mostly late or undelivered). For an independent check, a second model from another family (north-mini-code) labels the same 200 blind, and agreement is measured with **Cohen's kappa**: agreement corrected for chance (0 = chance, 1 = perfect, above 0.6 = substantial).
+
+### 🟡 "What surprised you in the results?"
+**Delivery isn't the whole story.** Even when an order arrived on time, 65% of bad reviews were about the product: wrong or missing items, damage, quality. And 936 reviews on orders marked as delivered on time say the item never came, which points at delivery confirmations, not delivery speed. So my recommendation has two levers: logistics and seller/catalogue quality.
+
+### 🟡 "Any data problems?"
+**Two.** (1) A review can be linked to several orders with the same text (14,375 rows, 14,246 reviews), so the label table is keyed on (review_id, order_id) and the app counts distinct reviews. (2) A few comments are only punctuation; a CSV round-trip silently turned their empty text into NaN and crashed a run. I fixed it in one shared loader instead of re-splitting, which would have changed the random gold sample.
+
+### 🟡 "What would you do with more time or budget?"
+Have two people label the gold set and measure their kappa; train LoRA on a GPU with a validation split to tune epochs (loss was still falling after 3); and re-label with a stronger LLM as teacher, since the students are capped by the teacher's quality.
 
 ---
 
@@ -626,6 +663,15 @@ Fill these in as each part is built, using real results only.
 | Logistic at threshold 0.5 | flags 0 of 32,150 test orders | notebook 02 §7 |
 | Missing values (model table) | 5 of 23 features; max 7.22% (train); 6,182 → 0 after preprocessing | notebook 02 §3 |
 | Duplicates (model table) | 0 duplicate orders | notebook 02 §3 |
+| Text-to-SQL accuracy (local qwen 7B) | 34.8% → 39.1% → 63.0% → 76.1% → **80.4%** (46 questions) | `text_to_sql_summary.csv` |
+| Text-to-SQL, hosted north-mini-code a+b+c+d | **93.5%** (43/46; easy 100 · medium 94.4 · hard 84.6) | `text_to_sql_runs.csv` |
+| Bad reviews with text (Module 2) | 14,246 distinct (14,375 review-order rows) | `apply.py` |
+| Gold-set macro-F1: LLM / LoRA / TF-IDF | **0.781** / 0.714 / 0.697 | `approach_comparison.csv` |
+| Seconds per review: LLM / LoRA / TF-IDF | 3.9 / 0.11 / 0.0006 | `results/*stats*.json` |
+| LoRA trainable share / CPU training time | 0.27% of 109M / 21 min | `lora_train_stats.json` |
+| Cascade | 38% of reviews to the LLM; LLM changed 46% of those; gold 0.789 (threshold chosen on gold) | PROGRESS |
+| Top themes | wrong/missing 25.6% · never arrived 25.1% · other 16.9% · late 12.7% · damaged 10.0% · quality 9.7% | `fact_review_theme` |
+| On-time orders' bad reviews | 64.9% about the product; 936 say "never arrived" | `fact_review_theme` |
 | Overfitting check (ROC-AUC train/valid/test) | logistic 0.733/0.726/0.727 · LightGBM 0.770/0.637/0.636 | notebook 02 §10 |
 | Log-transform test | 0.273 vs 0.284 without → not used | notebook 02 §7 |
 | Overall avg review (delivered) | 4.156 → shown as 4.16 | Parquet check, scatter line |

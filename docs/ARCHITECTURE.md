@@ -137,15 +137,16 @@ question ─► retrieve top-k similar solved examples (embeddings)        [step
 
 ## 6. GenAI Module 2 (required): review complaint themes
 
-- **Taxonomy:** late_delivery · wrong_or_missing_item · product_quality · damaged · never_arrived · other.
-- **Data:** reviews with comment text. Gold set ≈ 200 (labelled by hand, test only). Train/validation ≈ 1,500 (labelled by an LLM, spot-checked). Split by order_id with no overlap.
-- **Approaches:**
-  1. TF-IDF (word + character n-grams) + logistic regression (class-weighted).
-  2. Multilingual transformer (handles Portuguese) fine-tuned with **LoRA (PEFT)** on a Colab/Kaggle GPU; select the model size to fit the free GPU.
-  3. Zero-shot LLM with the taxonomy and definitions in the prompt.
-- **Metrics:** macro-F1 (primary), per-class F1, cost per 1,000 reviews, throughput.
-- **Output:** the chosen approach applied to all reviews with text → `fact_review_theme`.
-- **Location:** `genai/review_themes/` (notebooks run on Colab; results committed as CSV).
+- **Taxonomy** (`genai/review_themes/taxonomy.yaml`): never_arrived · wrong_or_missing_item · damaged · late_delivery · product_quality · other, with definitions, Portuguese cues and a precedence order for reviews that mention several problems. The same file feeds the labelling guide, every LLM prompt and the app.
+- **Data** (`sql/10_review_themes.sql`, `data.py`): 1-3 ★ reviews with a comment, title + comment as one text (14,375 review-order rows = 14,246 distinct reviews; a review can cover several orders). Gold set 200 (stratified by score × delivery situation, labelled by Claude, test only); train 1,500 from orders not in the gold set; seed 42.
+- **Teacher labels** (`llm_labeler.py`): local `qwen2.5-coder:7b` labels the 1,500 training reviews, 20 per request, JSON reply; every reply cached; a parser that keeps each complete {id, theme} pair, so a cut-off reply loses only its tail.
+- **Approaches** (all scored on the gold set by `evaluate.py`, macro-F1 primary):
+  1. TF-IDF (word 1-2 grams + character 3-5 grams, accents stripped) + class-weighted logistic regression (`tfidf.py`).
+  2. **BERTimbau** (`neuralmind/bert-base-portuguese-cased`, 110M) with **LoRA** (r=8 on query/value, 0.27% of weights trainable), class-weighted loss, 3 epochs on a laptop CPU (`lora.py`; the same script runs on a free Colab/Kaggle GPU).
+  3. Zero-shot LLM with the taxonomy in the prompt (`llm_labeler.py gold`).
+- **Result:** zero-shot LLM 0.781 > LoRA 0.714 > TF-IDF 0.697 macro-F1; speed 3.9 s vs 0.11 s vs 0.0006 s per review.
+- **Production labelling** (`apply.py`): a **confidence cascade**: LoRA labels everything; reviews with top probability < 0.7 (38%) go to the LLM. Output → DuckDB `fact_review_theme` (review_id, order_id, theme, source) and `app/data/review_themes.parquet`. LoRA predictions are saved and LLM replies cached, so the run resumes after an interruption.
+- **Label quality:** an independent second model (north-mini-code) labels the gold set; agreement with the gold labels is measured with Cohen's kappa (`evaluate.py agreement`).
 
 ## 7. Streamlit app (`app/`)
 
@@ -154,7 +155,7 @@ question ─► retrieve top-k similar solved examples (embeddings)        [step
 | Home / KPIs | Revenue, orders, on-time %, average review; late vs on-time review gap |
 | Late-delivery risk | Inputs (state, seller, category, price, freight, promised days…) → probability, risk band, SHAP explanation |
 | Ask the data | Question box → SQL (shown) + result table + auto chart; guardrail messages |
-| Review themes | Theme distribution, by state and score; examples |
+| Review themes | KPIs, theme shares, theme mix by delivery situation, example reviews, the three-approach comparison (filter by year and state) |
 
 Deployment: Streamlit Community Cloud from GitHub (primary); a `Dockerfile` also runs the app anywhere (local, Cloud Run), and CI builds it on every push; the DuckDB file (or Parquet extracts) is included or built at start-up; the API key goes in Streamlit secrets.
 
@@ -202,6 +203,7 @@ DUCKDB_PATH=data/olist.duckdb
 | D1 | DuckDB | PostgreSQL, SQLite | Analytical speed, zero ops, portable |
 | D2 | ~~LightGBM~~ **Logistic regression** for late delivery (revised Day 3) | LightGBM, deep learning, random forest | Planned LightGBM; under strong drift it early-stopped after a few trees and lost on validation and test. The linear model extrapolates and is exactly explainable |
 | D3 | Evaluation-driven prompting for text-to-SQL, **no fine-tuning** | Fine-tune a small model for SQL | Errors come mostly from business definitions; a semantic layer + examples fix them more cheaply (to be confirmed by error analysis) |
-| D4 | LoRA for the review-theme classifier | Full fine-tuning, API-only | Few labels (~1.5k) → PEFT lowers overfitting risk and fits a free GPU; small adapter; cheap batch inference. Compared against TF-IDF and zero-shot |
+| D4 | LoRA (BERTimbau) as the trained review-theme classifier, on CPU | Full fine-tuning, multilingual model, API-only | Few labels (1.5k) → PEFT trains 0.27% of weights, fits a laptop CPU in 21 min, small adapter; a Portuguese-specific BERT suits Portuguese reviews. Compared honestly: the zero-shot LLM scored higher (0.781 vs 0.714) |
 | D5 | Time-based split | Random split | Prevents future leakage; mirrors deployment |
 | D6 | Shared semantic layer | Separate definitions per tool | One definition of "late" and "revenue" across SQL, Power BI and the LLM |
+| D7 | Confidence cascade (LoRA first, LLM below 0.7 confidence) for the final review labels | LLM only; LoRA only | LLM-level quality on the gold set while the LLM sees 38% of reviews (~7.6 h instead of ~20 h on the laptop); the threshold was scanned on the gold set, so it is reported as matching the LLM, not beating it |

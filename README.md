@@ -3,7 +3,7 @@
 > **Why do customers leave bad reviews, and can we predict and prevent late deliveries?**
 > An end-to-end analysis of ~100,000 real e-commerce orders using **SQL, Python, Power BI, Excel, machine learning and GenAI**.
 
-`SQL (DuckDB)` · `Python` · `pandas` · `scikit-learn` · `LightGBM` · `SHAP` · `Power BI` · `Excel` · `LLM text-to-SQL` · `LoRA / PEFT` · `Streamlit`
+`SQL (DuckDB)` · `Python` · `pandas` · `scikit-learn` · `LightGBM` · `SHAP` · `Power BI` · `Excel` · `LLM text-to-SQL` · `LoRA / PEFT` · `Hugging Face Transformers` · `Ollama` · `Streamlit`
 
 **Status:** 🚧 In progress. See [docs/PROGRESS.md](docs/PROGRESS.md)
 
@@ -18,9 +18,9 @@
 | Late deliveries vs reviews | Late orders average **2.27 ★** vs **4.29 ★** for on-time orders (Mann-Whitney p < 1e-300, effect size r = −0.64) |
 | Worst delivery performance | On-time rate ranges from **82.64%** (Maranhão) to **95.96%** (Paraná); overall 93.23% |
 | Late-delivery model | Test PR-AUC **0.094** [95% CI 0.087–0.104] vs 0.044 random; beats LightGBM (0.073) and the best simple rule (0.059); late-class F1 0.161 vs 0.130 / 0.124. The riskiest 1% of orders are late **14.0%** of the time (3.2× average) |
-| "Ask the data" assistant | Execution accuracy **34.8% → 80.4%** on a 46-question benchmark, adding one improvement at a time (column descriptions, semantic layer, retrieved examples, self-correction) on a free local model; the semantic layer gave the largest gain (+11 questions). US$0 |
-| Review complaint themes | *Coming in GenAI Module 2 (Days 8–10): TF-IDF vs LoRA-tuned transformer vs zero-shot LLM, macro-F1* |
-| Recommendation | *Written at the end, once Module 2 shows what unhappy customers complain about* |
+| "Ask the data" assistant | Execution accuracy **34.8% → 80.4%** on a 46-question benchmark, adding one improvement at a time (column descriptions, semantic layer, retrieved examples, self-correction) on a free local model; the semantic layer gave the largest gain (+11 questions). The same pipeline on a hosted free model (north-mini-code): **93.5%**. US$0 |
+| Review complaint themes | 14,246 bad reviews (1-3 ★, Portuguese) classified into 6 themes. On 200 hand-labelled reviews: zero-shot LLM macro-F1 **0.781**, LoRA-tuned BERTimbau 0.714, TF-IDF 0.697. A cascade (LoRA first, LLM only when LoRA is under 70% sure) matched the LLM while sending it 38% of reviews. Top themes: wrong or missing item **25.6%**, never arrived **25.1%** |
+| Recommendation | Two levers, not one. (1) **Delivery:** late orders lose about 2 stars; target the worst states and audit "delivered" confirmations (936 bad reviews on orders marked delivered on time say the item never came). (2) **Sellers and catalogue:** even on on-time orders, **65%** of bad reviews are about the product (wrong or missing items, damage, quality), so seller quality checks matter as much as logistics |
 
 ## How This Project Was Built, Step by Step
 
@@ -38,9 +38,9 @@ The project follows the standard analytics order: **understand the business → 
 | 8 | **Predict late deliveries** | A model that estimates, at the moment of purchase, how likely an order is to arrive late, and explains why | [Model notebook](notebooks/02_late_delivery_model.ipynb) | ✅ |
 | 9 | **Build the dashboard** | Power BI report for managers: overview, delivery and satisfaction, sellers and categories, plus a seller drill-through page; every number checked against SQL (48 checks) | `powerbi/` ([build guide](powerbi/POWERBI_GUIDE.md), [measures](powerbi/DAX_MEASURES_NOTES.md), [screenshots](#screenshots)) | ✅ |
 | 10 | **Excel management report** | Monthly KPI pack (month and state selectors), PivotTables with slicers and PivotCharts, a what-if sheet with Data Tables, and 19 reconciliation checks against SQL | `excel/Monthly_CX_Report.xlsx`, `scripts/build_excel_report.py` | ✅ |
-| 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 46 test questions, 34.8% → 80.4% step by step ([chart](#ask-the-data-accuracy-per-improvement-step)) | `genai/semantic_layer.yaml`, `genai/eval/`, `genai/text_to_sql/` | 🔄 model comparison left |
+| 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 46 test questions, 34.8% → 80.4% step by step ([chart](#ask-the-data-accuracy-per-improvement-step)), 93.5% on a hosted free model | `genai/semantic_layer.yaml`, `genai/eval/`, `genai/text_to_sql/` | ✅ (Gemma comparison pending) |
 | 12 | **Web app** | Streamlit app: Overview (KPIs and the delay → review story, filterable), Late-delivery risk (score a real order, SHAP explanation, what-if sliders), Ask the data (SQL always shown) | `app/` | ✅ local (deployment on Day 7) |
-| 13 | **GenAI: review themes** | Classify what unhappy customers complain about, comparing three approaches | `genai/review_themes/` | ⬜ |
+| 13 | **GenAI: review themes** | Classify what unhappy customers complain about: three approaches compared on 200 hand-labelled reviews, then a LoRA + LLM cascade labels all 14,246 ([results](#review-themes-three-approaches-compared)) | `genai/review_themes/` | ✅ |
 | 14 | **Package and share** | Automated checks, final write-up, demo video | `.github/`, this README | ⬜ |
 
 Every number in this README comes from code that was actually run; the full log with sources is in [docs/PROGRESS.md](docs/PROGRESS.md).
@@ -56,7 +56,7 @@ Every number in this README comes from code that was actually run; the full log 
 | **Power BI dashboard** | Executive overview · Delivery & satisfaction · Sellers & categories · Seller detail (drill-through); 51 documented DAX measures; titles and insights update with the year and state slicers |
 | **Excel report** | Monthly management report: KPIs vs previous month and last year, PivotTables with slicers, a what-if on the review value of on-time delivery, and a checks sheet (19/19 pass); rebuilt from the database by one script |
 | **GenAI 1: Ask the data** | Natural-language questions → safe, read-only SQL; improved step by step (descriptions, semantic layer, few-shot retrieval, self-correction) and measured on a benchmark |
-| **GenAI 2: Review themes** | Complaint-theme classification of Portuguese reviews: TF-IDF vs LoRA-tuned transformer vs zero-shot LLM |
+| **GenAI 2: Review themes** | Complaint-theme classification of Portuguese reviews: TF-IDF vs LoRA-tuned BERTimbau vs zero-shot LLM, then a confidence cascade over all reviews → `fact_review_theme` |
 | **Streamlit app** | Overview (filterable KPIs and the delay → review story), late-delivery risk with SHAP and what-if sliders, Ask the data (local or hosted free model, SQL always shown), review themes (Module 2) · same design system as Power BI and Excel |
 
 ## Architecture
@@ -102,8 +102,27 @@ improvement added per step. A query counts as correct when its **result** matche
 | + c | 3 retrieved similar examples | 76.1% | 100% | 72.2% | 53.8% |
 | + d | Self-correction (error sent back once) | **80.4%** | 100% | 77.8% | 61.5% |
 
-Source: `genai/results/text_to_sql_summary.csv` (`python -m genai.text_to_sql.report`). The model comparison
-(best configuration on two hosted free models) runs within the free daily quota and will be added here.
+Source: `genai/results/text_to_sql_summary.csv` (`python -m genai.text_to_sql.report`). The best configuration
+(a+b+c+d) on a hosted free model, `cohere/north-mini-code:free`: **43/46 = 93.5%** (easy 100%, medium 94.4%,
+hard 84.6%). A third model (Gemma-4-31B) runs within the free daily quota and will be added here.
+
+### Review themes: three approaches compared
+
+Every 1-3 star review with a comment (14,246, in Portuguese) gets one complaint theme: never arrived, wrong or
+missing item, damaged, late delivery, product quality, other. All approaches were scored on the same 200
+hand-labelled reviews, which none of them saw during training.
+
+| Approach | How it works | Macro-F1 | Accuracy | Seconds per review |
+|---|---|---|---|---|
+| Zero-shot LLM | Local `qwen2.5-coder:7b`, theme definitions in the prompt, 20 reviews per request | **0.781** | 79.0% | 3.9 |
+| LoRA fine-tune | BERTimbau (Portuguese BERT), 0.27% of weights trained on 1,500 LLM-labelled reviews, 21 min on a laptop CPU | 0.714 | 73.5% | 0.11 |
+| TF-IDF + logistic regression | Word and character patterns, trained on the same 1,500 labels | 0.697 | 71.0% | 0.0006 |
+
+The LLM is the most accurate but the slowest. **Cascade used for the final labels:** LoRA labels every review,
+and the 38% it is less than 70% sure about go to the LLM. On the 200 test reviews this matched the LLM's
+quality (0.789; the threshold was chosen on this set, so read it as "LLM-level", not "better"). Final themes:
+wrong or missing item 25.6% · never arrived 25.1% · other 16.9% · late delivery 12.7% · damaged 10.0% ·
+product quality 9.7%. Source: `genai/review_themes/results/approach_comparison.csv`, `docs/PROGRESS.md`.
 
 *(App pages will be added later.)*
 
@@ -142,13 +161,22 @@ python -m genai.text_to_sql.evaluate --config a+b+c+d --model ollama/qwen2.5-cod
 python -m genai.text_to_sql.report                        # chart + summary table
 #    Hosted free models: copy .env.example to .env, add an OpenRouter key, omit --model
 
-# 9. Tests and lint
+# 9. Review themes (Module 2): split, LLM labels, the three approaches, then all reviews
+python -m genai.review_themes.data                   # gold 200 / train 1,500 split
+python -m genai.review_themes.llm_labeler gold       # zero-shot LLM on the gold set
+python -m genai.review_themes.llm_labeler train      # training labels (the "teacher")
+python -m genai.review_themes.tfidf
+python -m genai.review_themes.lora train             # CPU ~20 min; a free Colab GPU takes minutes
+python -m genai.review_themes.evaluate report        # macro-F1 table
+python -m genai.review_themes.apply cascade          # all reviews -> fact_review_theme + app data
+
+# 10. Tests and lint
 pytest
 ruff check .
 ```
 
 ```bash
-# 10. The Streamlit app (Overview and Risk pages run from the small extracts in app/data/;
+# 11. The Streamlit app (Overview and Risk pages run from the small extracts in app/data/;
 #     "Ask the data" also needs the database and a model: local Ollama or an OpenRouter key)
 python scripts/export_app_data.py      # refresh app/data/ after a database rebuild
 streamlit run app/streamlit_app.py

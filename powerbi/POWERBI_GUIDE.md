@@ -7,7 +7,7 @@ This guide rebuilds `powerbi/olist_cx_dashboard.pbix` from scratch: data, model,
 | File | What it is |
 |---|---|
 | `data/powerbi/*.parquet` | The 6 tables to load (made by `scripts/export_powerbi.py`, git-ignored) |
-| `powerbi/measures.dax` | All 51 DAX measures, ready to paste |
+| `powerbi/measures.dax` | All 54 DAX measures (3 for the review-themes page), ready to paste |
 | `powerbi/DAX_MEASURES_NOTES.md` | What each measure means, its format, where it's used and its checked value |
 | `powerbi/theme.json` | The "Storyteller" colour theme |
 | `powerbi/expected_values.csv` | 48 numbers the visuals must show |
@@ -31,7 +31,7 @@ The first lists 6 files (dim_date 852 rows … fact_order_items 112,650 rows); t
 
 ---
 
-## Step 1: Load the 6 tables
+## Step 1: Load the 6 tables (plus `fact_review_theme` for Page 5)
 
 1. Power BI Desktop → **Blank report** → **Home → Get data → More… → Parquet**.
 2. Paste the full path, e.g. `D:\ecommerce-customer-experience-analytics\data\powerbi\fact_orders.parquet` → **OK → Load**. Repeat for `dim_date`, `dim_customer`, `dim_seller`, `dim_product`, `fact_order_items`.
@@ -171,6 +171,41 @@ Then:
 | What this seller sells (table) | `category_en`, `[Item-level Orders]`, `[Revenue]`, `[Avg Review (via items)]` | "unknown" = product listed without a category |
 
 **Test:** on page 3 right-click seller **1ca7077d** → Drill through → Seller detail → Revenue R$ 12,475 · 108 orders · on-time 83.33% (vs 93.23%) · review 2.39. **Ctrl+click** the Back button to return.
+
+---
+
+## Step 8b: Page 5, "Review themes" (GenAI Module 2)
+
+**Data:** `python scripts/export_powerbi.py` also writes `data/powerbi/fact_review_theme.parquet` once Module 2 has run (`python -m genai.review_themes.apply cascade`). Load it like the other tables (Step 1).
+
+**Model:** relationship `fact_review_theme[order_id]` → `fact_orders[order_id]` (many to one, single direction), so the year and state slicers filter themes too. Hide `review_id`, `order_id`, `source`.
+
+**Calculated column** on `fact_review_theme` (readable names on the axis):
+```
+Theme Label =
+SWITCH (
+    fact_review_theme[theme],
+    "never_arrived", "Never arrived",
+    "late_delivery", "Late delivery",
+    "wrong_or_missing_item", "Wrong or missing item",
+    "damaged", "Damaged / defective",
+    "product_quality", "Product quality",
+    "Other (service, vague)"
+)
+```
+
+**Measures:** `[Theme Reviews]`, `[Theme Share %]`, `[Product Complaint Share %]` (end of `measures.dax`).
+
+**Title:** "Bad reviews are as much about the product as about delivery"
+
+| Visual | Fields / measures | Notes |
+|---|---|---|
+| 2 KPI cards | `[Theme Reviews]` (14,246) · `[Product Complaint Share %]` (45.3%) | |
+| Share of bad reviews by theme (bar, largest first) | Y `Theme Label` · X `[Theme Share %]` | Data labels on; "Never arrived" and "Late delivery" bars coral (delivery), the rest teal |
+| Product complaints on on-time orders (card) | `[Product Complaint Share %]` with visual filter `fact_orders[is_late] = False` and `is_delivered = True` | 64.9%: even when delivery works, two in three bad reviews are about the product |
+| Action bar | "Two levers: fix delivery on the worst routes, and put sellers with many wrong-item or damage complaints on a quality check." | |
+
+**Test (All years):** Theme Reviews 14,246 · Wrong or missing item 25.6% · Never arrived 25.1% · Other 16.9% · Late 12.7% · Damaged 10.0% · Quality 9.7% · on-time product share 64.9%.
 
 ---
 

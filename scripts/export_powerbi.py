@@ -30,6 +30,17 @@ def main() -> int:
                 f"SELECT COUNT(*) FROM read_parquet('{path.as_posix()}')"
             ).fetchone()[0]
             print(f"  {path.name:28s} {rows:>9,} rows  {path.stat().st_size / 1e6:6.2f} MB")
+        # GenAI Module 2 output: only present after `python -m genai.review_themes.apply cascade`
+        tables = {
+            t for (t,) in con.execute("SELECT table_name FROM information_schema.tables").fetchall()
+        }
+        if "fact_review_theme" in tables:
+            path = OUT_DIR / "fact_review_theme.parquet"
+            con.execute(
+                "COPY (SELECT review_id, order_id, theme, source FROM fact_review_theme) "
+                f"TO '{path.as_posix()}' (FORMAT parquet)"
+            )
+            print(f"  {path.name:28s} (review themes, Module 2)")
     print(f"Done. Point Power BI at: {OUT_DIR}")
     return 0
 

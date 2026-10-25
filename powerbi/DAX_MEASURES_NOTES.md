@@ -2,7 +2,7 @@
 
 All measures in the `_Measures` table of `olist_cx_dashboard.pbix`, with the exact formula, what it means in plain English, its format, where it's used, and the value it was **checked against SQL** (`powerbi/expected_values.csv`). The copy-paste source file is `powerbi/measures.dax`.
 
-**Total: 51 measures** (plus the calculated column `dim_seller[Seller] = LEFT ( dim_seller[seller_id], 8 )`, a short ID that is unique for all 3,095 sellers). (The leftover `Column1` in `_Measures` is a placeholder from "Enter data" and can be deleted.)
+**Total: 54 measures** (51 for pages 1-4, 3 for the Module 2 review-themes page), plus the calculated columns `dim_seller[Seller] = LEFT ( dim_seller[seller_id], 8 )` (a short ID, unique for all 3,095 sellers) and `fact_review_theme[Theme Label]`. (The leftover `Column1` in `_Measures` is a placeholder from "Enter data" and can be deleted.)
 
 ## Key ideas used throughout
 
@@ -592,6 +592,20 @@ RETURN
 - **Meaning:** one sentence comparing the drilled seller with all sellers. The format `"+0.0;-0.0"` always shows the sign, so "−9.9 pts" reads instantly as worse.
 - **"pts" = percentage points:** 83.3% − 93.2% is 9.9 *points*, not 9.9 *percent*.
 - **Used on:** insight strip on Seller detail. **Checked:** 1ca7077d → On-time 83.3% vs 93.2% (−9.9 pts) · Review 2.39★ vs 4.16★ ✅
+
+## Review themes (GenAI Module 2)
+
+### Theme Reviews
+```DAX
+Theme Reviews = DISTINCTCOUNT ( fact_review_theme[review_id] )
+```
+- **Meaning:** bad reviews (1-3 ★ with a comment) that received a theme. **Why DISTINCTCOUNT:** a review can be linked to several orders with the same text (14,375 rows, 14,246 reviews). **Checked:** 14,246 ✅
+
+### Theme Share %
+- **Meaning:** the theme's share of bad reviews under the current year/state filters. It removes filters from the two theme columns only: `REMOVEFILTERS(fact_review_theme)` would also clear the year and state filters, because a table on the many side "expands" to include `fact_orders` and its dimensions. **Checked:** wrong or missing item 25.6% ✅
+
+### Product Complaint Share %
+- **Meaning:** share of bad reviews about the product itself (wrong or missing item, damaged, product quality). **Checked:** 45.3% all orders; 64.9% on orders delivered on time ✅
 
 ## Lessons worth telling in an interview
 
