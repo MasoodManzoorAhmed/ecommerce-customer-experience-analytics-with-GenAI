@@ -1,0 +1,8 @@
+{
+ "base_model": "neuralmind/bert-base-portuguese-cased",
+ "train_reviews": 1500,
+ "trainable_params": 299526,
+ "total_params": 109227276,
+ "trainable_share": 0.002742227133815916,
+ "train_minutes": 21.191830451666586
+}

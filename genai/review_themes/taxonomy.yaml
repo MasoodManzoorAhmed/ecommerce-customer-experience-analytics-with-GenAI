@@ -1,0 +1,46 @@
+# Complaint themes for GenAI Module 2: one PRIMARY theme per low-score (1-3 star) review.
+# Used by the human/gold labelling guide, the LLM prompts (zero-shot and training labels)
+# and the app, so every approach classifies against the same definitions.
+
+themes:
+  never_arrived:
+    definition: The customer says the order (or the whole order) has not been received.
+    cues_pt: [não recebi, não chegou, ainda não recebi, nunca chegou, aguardando o produto, não foi entregue]
+  wrong_or_missing_item:
+    definition: >-
+      The customer received something, but it was the wrong product, a different model/colour/
+      size than ordered, or items or parts were missing (including receiving only part of an order).
+    cues_pt: [veio errado, produto diferente, faltou, faltando, recebi apenas, só chegou um, veio outro]
+  damaged:
+    definition: >-
+      The product arrived broken, damaged or defective (does not work from the start).
+    cues_pt: [quebrado, danificado, avariado, defeito, não funciona, veio com defeito, amassado, rachado]
+  late_delivery:
+    definition: >-
+      The main complaint is that delivery took too long or arrived after the promised date
+      (the product itself was fine or not mentioned).
+    cues_pt: [atraso, atrasou, demorou, demora, chegou depois do prazo, fora do prazo, prazo]
+  product_quality:
+    definition: >-
+      The product works but is poor: low quality, smaller/flimsier than expected, not as described
+      or as in the photos, or the customer is disappointed with the product itself.
+    cues_pt: [qualidade ruim, péssima qualidade, não é o da foto, diferente do anunciado, frágil, pequeno, não gostei]
+  other:
+    definition: >-
+      Anything else: seller or customer-service problems (no answer, refund, cancellation,
+      invoice), neutral or positive remarks, or text too vague to tell.
+    cues_pt: [não responde, reembolso, estorno, cancelamento, nota fiscal, ok, bom]
+
+# When a review mentions several problems, pick the FIRST theme in this list that applies
+# (the most severe / most specific problem wins).
+precedence: [never_arrived, wrong_or_missing_item, damaged, late_delivery, product_quality, other]
+
+guide: |
+  Read the title and the comment. Decide what the customer is MAINLY complaining about.
+  - Not received at all -> never_arrived (even if they also mention the delay).
+  - Received, but wrong / incomplete -> wrong_or_missing_item.
+  - Received, but broken or not working -> damaged.
+  - Received fine but late, and the delay is the complaint -> late_delivery.
+  - Received on time, works, but disappointing -> product_quality.
+  - Otherwise (service, refund, neutral, vague) -> other.
+  If two themes apply, use the precedence order above.

@@ -40,3 +40,8 @@ genai/results/*.log
 
 # Streamlit app: its own LLM cache (questions typed in the app stay out of the evaluation results)
 app/.cache/
+
+# Module 2: run logs, regenerable extracts and the trained TF-IDF model
+genai/review_themes/results/*.log
+genai/review_themes/results/*.parquet
+genai/review_themes/results/*.joblib

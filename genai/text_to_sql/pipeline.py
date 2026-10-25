@@ -181,7 +181,9 @@ def answer(question: str, client: LLMClient, config: Config, schema: str | None 
         out["retried"] = True
         messages = [
             *messages,
-            {"role": "assistant", "content": reply.text},
+            # some providers reject an empty assistant turn (a reasoning model can spend all its
+            # tokens thinking and return nothing), so an empty reply is stated explicitly
+            {"role": "assistant", "content": reply.text or "(no SQL was returned)"},
             {"role": "user", "content": CORRECTION_PROMPT.format(error=error)},
         ]
     return out

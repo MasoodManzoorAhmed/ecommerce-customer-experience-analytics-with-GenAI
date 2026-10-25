@@ -41,6 +41,8 @@ def check_sql(
     sql: str, allowed: frozenset[str] = ALLOWED_TABLES, limit: int = DEFAULT_LIMIT
 ) -> str:
     """Validate the query and return it (with a LIMIT added if missing). Raises GuardrailError."""
+    if not sql.strip():
+        raise GuardrailError("the model returned no SQL")
     try:
         statements = [s for s in sqlglot.parse(sql, read="duckdb") if s is not None]
     except sqlglot.errors.ParseError as err:

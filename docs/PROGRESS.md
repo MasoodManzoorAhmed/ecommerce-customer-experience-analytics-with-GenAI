@@ -59,9 +59,11 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [ ] README results filled in · résumé bullets · first 10 applications
 
 ### Days 8–10: Module 2 (required)
-- [ ] Gold labels (≈ 200) · LLM labels (≈ 1,500) · TF-IDF baseline
-- [ ] LoRA fine-tune + zero-shot comparison
-- [ ] Apply to all reviews → `fact_review_theme` → Power BI/app
+- [x] Gold labels (200) · LLM labels (1,500) · TF-IDF baseline
+- [x] LoRA fine-tune (CPU) + zero-shot comparison (zero-shot LLM wins on quality)
+- [ ] Second-annotator agreement (Cohen's kappa) after the free-cap reset
+- [x] Apply to all reviews → `fact_review_theme` → app Themes page (LoRA labels; cascade LLM pass running)
+- [ ] Cascade final labels · Power BI theme visual
 - [ ] Final README · 3-minute demo video · LinkedIn post
 
 ## Results log (real numbers only)
@@ -169,7 +171,17 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | **Leak found in code review** | The semantic-layer prompt included its `expected` test values; 7 were evaluation answers (e02, e03, e07, e09, e10, e11, e12). No stored SQL contained any of them as a literal. Fixed (`pipeline.semantic_layer_text` strips them; `test_semantic_layer_prompt_contains_no_test_answers`) and steps b-d re-run | code review this session |
 | 2026-10-24 | **Leak-free ablation, local qwen2.5-coder 7B (current numbers)** | baseline 16/46 = 34.8% → +a 18/46 = 39.1% → **+b 29/46 = 63.0%** (easy 93.3 · medium 72.2 · hard 15.4) → **+c 35/46 = 76.1%** (100 · 72.2 · 53.8) → **+d 37/46 = 80.4%** (100 · 77.8 · 61.5); step d retried 6, fixed 2 (h05, m11); largest gain: semantic layer +11 | `genai/results/text_to_sql_summary.csv` |
 | 2026-10-24 | Leak-free step d failures (9) | wrong result with no error (no retry possible): h01 LAG inside the filtered window, h02 seller revenue, h13 not distinct orders, m07 missing delivered filter, m17 borderline NULL payment row · still failing after the retry: h03, m04, m10 (execution), h07 (unparseable) | manual review |
+| 2026-10-25 | **Hosted comparison: cohere/north-mini-code:free, a+b+c+d** | **43/46 = 93.5%** (easy 100 · medium 94.4 · hard 84.6) vs 80.4% for local qwen 7B · failures: h06 guardrail, h13 execution (both after a retry; h13 re-asked after the empty-reply fix, its first reply was empty), m17 borderline NULL payment row · mean 10.2 s · US$0 (free tier) | `genai/results/text_to_sql_runs.csv` |
 | 2026-10-24 | Streamlit app checks | app extracts reconcile: R$ 13,220,248.93 · 96,470 orders · 93.23% on time · 4.16 ★; 2018 filter R$ 7,217,172.24 (= gold m01); delay buckets = SQL q08; worst state MA 82.64%; risk page example order 46% → 36.1% with seller in the same state; Ask page answered 'late rate by quarter 2017' (3.78 / 3.92 / 3.37 / 8.69%) = direct SQL, 53 s on the local model | `tests/test_app.py`, browser check |
+| 2026-10-25 | Module 2 data | 14,375 low-score (1-3 ★) reviews with text (11 are punctuation only → empty text, counted as 'other') · gold 200 (stratified by score x situation) · train 1,500 · 0 orders shared | `genai/review_themes/data.py` |
+| 2026-10-25 | Gold labels (Claude, one annotator) | never_arrived 54 · other 41 · wrong_or_missing_item 40 · product_quality 31 · damaged 20 · late_delivery 14 | `genai/review_themes/results/gold_labels.csv` |
+| 2026-10-25 | Teacher labels, local qwen2.5-coder 7B | 1,500 train reviews in 75 requests (20 per request), 0 incomplete batches, 5.8 s/review · wrong_or_missing 385 · never_arrived 357 · other 290 · late 183 · quality 152 · damaged 133 | `results/llm_stats_train.json` |
+| 2026-10-25 | **Module 2 comparison on 200 gold reviews** | **zero-shot LLM (qwen 7B): macro-F1 0.781, accuracy 79.0%, 3.9 s/review** · LoRA BERTimbau (0.27% of 109M params trained, 3 epochs, 21 min CPU): macro-F1 0.714, accuracy 73.5%, 0.11 s/review · TF-IDF + logistic regression: macro-F1 0.697, accuracy 71.0%, 0.0006 s/review, 5 s to train · hardest theme for all: late_delivery (F1 0.55-0.65) | `results/approach_comparison.csv` |
+| 2026-10-25 | Confidence-routed cascade (exploratory, threshold scanned ON GOLD, so optimistic) | LoRA keeps reviews where its top probability ≥ t, the rest go to the zero-shot LLM: t=0.5 → 14% to LLM, macro-F1 0.735 · t=0.6 → 27%, 0.757 · **t=0.7 → 38%, 0.789 (acc 81.0%)** · t=0.8 → 53%, 0.778 · t=0.9 → 78%, 0.796 · all LLM 0.781. Safe claim: LLM-level quality with ~40% of the LLM calls (differences of ±0.01 on 200 reviews are noise) | session analysis |
+| 2026-10-25 | Olist quirk: one review can cover several orders | 14,375 review-order rows = 14,246 distinct reviews (129 repeats, always the same text) → key (review_id, order_id) in `fact_review_theme`; the app counts distinct reviews; the cascade sends each text to the LLM once | `genai/review_themes/apply.py` |
+| 2026-10-25 | LoRA labels for all reviews (published, interim) | 14,375 rows in 20.7 min on CPU · never_arrived 25.3% · wrong_or_missing 23.4% · other 15.3% · late 13.4% · quality 11.8% · damaged 10.7% (row shares) · 38.3% of reviews below 0.7 confidence → cascade sends 5,450 of 14,246 reviews to the LLM | `fact_review_theme`, `app/data/review_themes.parquet` |
+| 2026-10-25 | Insight (LoRA labels): on-time orders | 9,476 bad reviews on orders delivered on time: 65.5% are about the product (wrong/missing, damaged, quality); 10.5% (993) say 'never arrived' although the order is marked delivered | app Themes page |
+| 2026-10-25 | Second annotator (north-mini-code) | 3 of 10 batches done when the 50/day free cap hit; resumes from the cache after the reset | `results/llm_cache.jsonl` |
 
 ## Decisions log
 

@@ -123,3 +123,59 @@ FEATURE_LABELS = {
     "payment_type_main": "Payment method",
     "primary_category": "Product category",
 }
+
+
+# ---------------------------------------------------------------- review themes (GenAI Module 2)
+THEME_LABELS = {
+    "never_arrived": "Never arrived",
+    "late_delivery": "Late delivery",
+    "wrong_or_missing_item": "Wrong or missing item",
+    "damaged": "Damaged / defective",
+    "product_quality": "Product quality",
+    "other": "Other (service, vague)",
+}
+DELIVERY_THEMES = ("never_arrived", "late_delivery")
+PRODUCT_THEMES = ("wrong_or_missing_item", "damaged", "product_quality")
+SITUATION_ORDER = ["on time", "late", "not delivered"]
+THEME_RESULTS = ROOT / "genai" / "review_themes" / "results"
+
+
+def load_themes() -> pd.DataFrame:
+    """One row per review (a few reviews cover several orders with the same text)."""
+    df = load("review_themes").drop_duplicates("review_id")
+    df["year"] = df["year_month"].str[:4].astype(int)
+    return df
+
+
+def theme_shares(df: pd.DataFrame) -> pd.DataFrame:
+    """Reviews and share per theme, largest first."""
+    out = df["theme"].value_counts().rename_axis("theme").reset_index(name="reviews")
+    out["share"] = out["reviews"] / out["reviews"].sum()
+    out["label"] = out["theme"].map(THEME_LABELS)
+    return out
+
+
+def theme_by_situation(df: pd.DataFrame) -> pd.DataFrame:
+    """Theme mix (row shares) within each delivery situation."""
+    mix = pd.crosstab(df["situation"], df["theme"], normalize="index")
+    return mix.reindex([s for s in SITUATION_ORDER if s in mix.index]).fillna(0.0)
+
+
+def approach_comparison() -> pd.DataFrame:
+    """Gold-set scores of the three approaches with their speed (from the logged stats)."""
+    path = THEME_RESULTS / "approach_comparison.csv"
+    if not path.exists():
+        return pd.DataFrame()
+    table = pd.read_csv(path)[["approach", "macro_f1", "accuracy"]]
+    stats = {
+        "zero-shot LLM": "llm_stats_gold.json",
+        "TF-IDF + logistic regression": "tfidf_stats.json",
+        "LoRA fine-tuned transformer": "lora_stats.json",
+    }
+    table["seconds_per_review"] = [
+        json.loads((THEME_RESULTS / stats[a]).read_text())["seconds_per_review"]
+        if (THEME_RESULTS / stats.get(a, "_")).exists()
+        else None
+        for a in table["approach"]
+    ]
+    return table

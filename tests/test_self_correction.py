@@ -53,3 +53,12 @@ def test_only_one_retry_is_allowed():
     out = answer("How many orders were delivered?", model, CONFIGS["a+b+c+d"], schema=SCHEMA)
     assert out["error_stage"] == "execution" and out["retried"]
     assert len(model.seen) == 2
+
+
+def test_an_empty_reply_is_retried_without_an_empty_assistant_turn():
+    model = ScriptedModel("", FIXED)
+    out = answer("How many orders were delivered?", model, CONFIGS["a+b+c+d"], schema=SCHEMA)
+    assert out["retried"] and out["result"]["rows"] == [[96470]]
+    assistant_turn = model.seen[1][-2]
+    assert assistant_turn["role"] == "assistant" and assistant_turn["content"].strip()
+    assert "no SQL" in model.seen[1][-1]["content"]
