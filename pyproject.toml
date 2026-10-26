@@ -7,6 +7,8 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# the project root on the import path, so plain `pytest` (not only `python -m pytest`) finds src/, genai/, app/
+pythonpath = ["."]
 
 [tool.ruff.lint.per-file-ignores]
 # notebooks add the project root to sys.path before importing from src/
