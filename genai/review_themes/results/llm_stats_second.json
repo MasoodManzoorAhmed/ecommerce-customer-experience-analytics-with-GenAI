@@ -1,0 +1,8 @@
+{
+ "reviews": 200,
+ "requests": 10,
+ "seconds_per_review": 3.0608000000000004,
+ "tokens_per_review": 161.45,
+ "incomplete_batches": 0,
+ "model": "cohere/north-mini-code:free"
+}

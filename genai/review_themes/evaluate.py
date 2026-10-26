@@ -2,6 +2,7 @@
 
     python -m genai.review_themes.evaluate agreement   # Cohen's kappa: your blind check vs gold
     python -m genai.review_themes.evaluate report      # macro-F1 of every approach on gold
+    python -m genai.review_themes.evaluate second      # Cohen's kappa: 2nd-annotator model vs gold
 
 Macro-F1 = the F1 score of each theme, averaged with equal weight, so a model cannot look
 good by only getting the big themes right. Cohen's kappa = agreement corrected for the
@@ -69,6 +70,28 @@ def agreement() -> dict:
     }
 
 
+def second_annotator() -> dict:
+    """Kappa between an independent model's blind labels on the gold set and the gold labels."""
+    gold = pd.read_csv(GOLD)[["review_id", "theme"]]
+    other = pd.read_csv(RESULTS / "second_annotator_gold.csv")
+    both = gold.merge(other, on="review_id", suffixes=("_gold", "_second"), validate="1:1")
+    cross = pd.crosstab(both["theme_gold"], both["theme_second"])
+    return {
+        "n": len(both),
+        "agreement": float((both["theme_gold"] == both["theme_second"]).mean()),
+        "kappa": float(cohen_kappa_score(both["theme_gold"], both["theme_second"])),
+        "per_theme_f1": {
+            t: float(f)
+            for t, f in zip(
+                THEMES,
+                f1_score(both["theme_gold"], both["theme_second"], labels=THEMES, average=None),
+                strict=True,
+            )
+        },
+        "crosstab": cross.to_dict(),
+    }
+
+
 def report() -> pd.DataFrame:
     rows = []
     for name, path in PREDICTIONS.items():
@@ -81,7 +104,11 @@ def report() -> pd.DataFrame:
 
 def main() -> int:
     which = sys.argv[1] if len(sys.argv) > 1 else "report"
-    if which == "agreement":
+    if which == "second":
+        out = second_annotator()
+        (RESULTS / "second_annotator_agreement.json").write_text(json.dumps(out, indent=1))
+        print(json.dumps({k: v for k, v in out.items() if k != "crosstab"}, indent=1))
+    elif which == "agreement":
         out = agreement()
         (RESULTS / "blind_check_agreement.json").write_text(json.dumps(out, indent=1))
         print(json.dumps(out, indent=1))

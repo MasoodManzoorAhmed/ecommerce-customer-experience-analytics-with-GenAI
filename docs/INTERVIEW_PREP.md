@@ -578,13 +578,16 @@ One design system across Power BI, Excel and the app (deep teal, coral only for 
 **LoRA labels everything and says how sure it is (its top softmax probability); reviews under 70% go to the LLM.** On the gold set that sent 38% of reviews to the LLM and scored 0.789, the same as the LLM alone (0.781). **Honest caveat:** I scanned thresholds on the gold set, so the 0.789 is optimistic; with 200 reviews a ±0.01 difference is noise. I claim "LLM-level quality with 38% of the LLM calls", not "better than the LLM". In practice the LLM changed LoRA's answer on 46% of the reviews it re-checked, so the unsure cases really were the hard ones. It cut the run from about 20 hours to 7.6.
 
 ### 🔴 "Who labelled the gold set, and how do you know it's right?"
-**I (the AI assistant) labelled it with a written guide and a precedence rule,** and a crosstab with delivery data was consistent (damaged/wrong/quality reviews are mostly on-time orders; never arrived mostly late or undelivered). For an independent check, a second model from another family (north-mini-code) labels the same 200 blind, and agreement is measured with **Cohen's kappa**: agreement corrected for chance (0 = chance, 1 = perfect, above 0.6 = substantial).
+**I (the AI assistant) labelled it with a written guide and a precedence rule,** and a crosstab with delivery data was consistent (damaged/wrong/quality reviews are mostly on-time orders; never arrived mostly late or undelivered). For an independent check, a second model from another provider (north-mini-code) labelled the same 200 blind: **90% agreement, Cohen's kappa 0.876** (kappa = agreement corrected for chance; 0 = chance, 1 = perfect, above 0.8 = almost perfect). The weakest theme was late delivery (F1 0.73), the same one every approach found hardest. **Caveat I state myself:** both judges are LLMs and could share blind spots, so a second human labeller would be the next step.
 
 ### 🟡 "What surprised you in the results?"
 **Delivery isn't the whole story.** Even when an order arrived on time, 65% of bad reviews were about the product: wrong or missing items, damage, quality. And 936 reviews on orders marked as delivered on time say the item never came, which points at delivery confirmations, not delivery speed. So my recommendation has two levers: logistics and seller/catalogue quality.
 
 ### 🟡 "Any data problems?"
 **Two.** (1) A review can be linked to several orders with the same text (14,375 rows, 14,246 reviews), so the label table is keyed on (review_id, order_id) and the app counts distinct reviews. (2) A few comments are only punctuation; a CSV round-trip silently turned their empty text into NaN and crashed a run. I fixed it in one shared loader instead of re-splitting, which would have changed the random gold sample.
+
+### 🔴 "The second model agreed 90% with your gold labels. Why not use it to label everything?"
+**It is the most accurate labeller I tested (macro-F1 0.884 vs 0.781 for local Qwen), but on the free tier it allows 50 requests a day.** At 20 reviews per request that is about 15 days for 14,246 reviews. The local model runs without limits. With a small budget, I would use the hosted model as the teacher and for the cascade's unsure reviews.
 
 ### 🟡 "What would you do with more time or budget?"
 Have two people label the gold set and measure their kappa; train LoRA on a GPU with a validation split to tune epochs (loss was still falling after 3); and re-label with a stronger LLM as teacher, since the students are capped by the teacher's quality.
@@ -670,6 +673,7 @@ Fill these in as each part is built, using real results only.
 | Seconds per review: LLM / LoRA / TF-IDF | 3.9 / 0.11 / 0.0006 | `results/*stats*.json` |
 | LoRA trainable share / CPU training time | 0.27% of 109M / 21 min | `lora_train_stats.json` |
 | Cascade | 38% of reviews to the LLM; LLM changed 46% of those; gold 0.789 (threshold chosen on gold) | PROGRESS |
+| Gold-label check (north-mini-code, blind) | 90% agreement, Cohen's kappa 0.876; north macro-F1 0.884 | `second_annotator_agreement.json` |
 | Top themes | wrong/missing 25.6% · never arrived 25.1% · other 16.9% · late 12.7% · damaged 10.0% · quality 9.7% | `fact_review_theme` |
 | On-time orders' bad reviews | 64.9% about the product; 936 say "never arrived" | `fact_review_theme` |
 | Overfitting check (ROC-AUC train/valid/test) | logistic 0.733/0.726/0.727 · LightGBM 0.770/0.637/0.636 | notebook 02 §10 |

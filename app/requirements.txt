@@ -1,0 +1,16 @@
+# Streamlit Community Cloud installs THIS file (it looks next to the entry point first).
+# Only what the app imports: no torch / transformers, so the cloud build is small and fast.
+# Versions match requirements.lock.txt; scikit-learn must match the version that saved
+# models/late_delivery_model.pkl, or the pickled model may not load.
+streamlit==1.66.0
+pandas==3.0.6
+numpy==2.5.4
+pyarrow==26.0.0
+plotly==7.1.0
+scikit-learn==1.9.1
+joblib==1.6.0
+duckdb==1.5.6
+sqlglot==30.23.0
+PyYAML==6.0.3
+openai==3.35.1
+python-dotenv==1.2.4

@@ -124,7 +124,7 @@ with right:
         )
     )
     fig.add_vline(x=0, line=dict(color=INK, width=1))
-    st.plotly_chart(style_fig(fig, height=330), config=PLOTLY_CONFIG, use_container_width=True)
+    st.plotly_chart(style_fig(fig, height=330), config=PLOTLY_CONFIG, width="stretch")
 
 # ---------------------------------------------------------------- what-if
 section("What if…", "change the order and the model re-scores it instantly")

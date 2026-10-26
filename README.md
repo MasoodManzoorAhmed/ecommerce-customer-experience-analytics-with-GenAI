@@ -19,7 +19,7 @@
 | Worst delivery performance | On-time rate ranges from **82.64%** (Maranhão) to **95.96%** (Paraná); overall 93.23% |
 | Late-delivery model | Test PR-AUC **0.094** [95% CI 0.087–0.104] vs 0.044 random; beats LightGBM (0.073) and the best simple rule (0.059); late-class F1 0.161 vs 0.130 / 0.124. The riskiest 1% of orders are late **14.0%** of the time (3.2× average) |
 | "Ask the data" assistant | Execution accuracy **34.8% → 80.4%** on a 46-question benchmark, adding one improvement at a time (column descriptions, semantic layer, retrieved examples, self-correction) on a free local model; the semantic layer gave the largest gain (+11 questions). The same pipeline on a hosted free model (north-mini-code): **93.5%**. US$0 |
-| Review complaint themes | 14,246 bad reviews (1-3 ★, Portuguese) classified into 6 themes. On 200 hand-labelled reviews: zero-shot LLM macro-F1 **0.781**, LoRA-tuned BERTimbau 0.714, TF-IDF 0.697. A cascade (LoRA first, LLM only when LoRA is under 70% sure) matched the LLM while sending it 38% of reviews. Top themes: wrong or missing item **25.6%**, never arrived **25.1%** |
+| Review complaint themes | 14,246 bad reviews (1-3 ★, Portuguese) classified into 6 themes. On 200 hand-labelled reviews: zero-shot LLM macro-F1 **0.781**, LoRA-tuned BERTimbau 0.714, TF-IDF 0.697. A cascade (LoRA first, LLM only when LoRA is under 70% sure) matched the LLM while sending it 38% of reviews. Gold labels checked by an independent model: Cohen's kappa **0.876**. Top themes: wrong or missing item **25.6%**, never arrived **25.1%** |
 | Recommendation | Two levers, not one. (1) **Delivery:** late orders lose about 2 stars; target the worst states and audit "delivered" confirmations (936 bad reviews on orders marked delivered on time say the item never came). (2) **Sellers and catalogue:** even on on-time orders, **65%** of bad reviews are about the product (wrong or missing items, damage, quality), so seller quality checks matter as much as logistics |
 
 ## How This Project Was Built, Step by Step
@@ -122,7 +122,9 @@ The LLM is the most accurate but the slowest. **Cascade used for the final label
 and the 38% it is less than 70% sure about go to the LLM. On the 200 test reviews this matched the LLM's
 quality (0.789; the threshold was chosen on this set, so read it as "LLM-level", not "better"). Final themes:
 wrong or missing item 25.6% · never arrived 25.1% · other 16.9% · late delivery 12.7% · damaged 10.0% ·
-product quality 9.7%. Source: `genai/review_themes/results/approach_comparison.csv`, `docs/PROGRESS.md`.
+product quality 9.7%. **Label check:** a second model from another provider (north-mini-code) labelled the 200 gold
+reviews blind: 90% agreement, Cohen's kappa 0.876. Source: `genai/review_themes/results/approach_comparison.csv`,
+`second_annotator_agreement.json`, `docs/PROGRESS.md`.
 
 *(App pages will be added later.)*
 
@@ -181,6 +183,22 @@ ruff check .
 python scripts/export_app_data.py      # refresh app/data/ after a database rebuild
 streamlit run app/streamlit_app.py
 ```
+
+## Deploy the App (Streamlit Community Cloud, free)
+
+1. Push the repository to GitHub (public).
+2. On [share.streamlit.io](https://share.streamlit.io): **Create app** → pick the repository, branch `main`,
+   main file `app/streamlit_app.py`; **Advanced settings → Python 3.12**.
+3. Optional, for hosted models on "Ask the data": add `OPENROUTER_API_KEY = "..."` under **Secrets** (never
+   in the repository).
+
+The cloud build installs `app/requirements.txt`: only the 12 packages the app imports (no torch), checked in a
+clean environment where all four pages load. Overview, Risk and Review themes run from the small extracts in
+`app/data/`; "Ask the data" needs the 75 MB database, which is not in the repository, so in the cloud it shows a
+short explanation instead.
+
+CI: `.github/workflows/ci.yml` runs `ruff check .` and `pytest` on every push. Without the data, the 42 tests that
+need the database skip themselves and the other 140 run.
 
 ## Project Structure
 

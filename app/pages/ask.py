@@ -160,8 +160,8 @@ if history:
         else:
             chart = auto_chart(result)
             if chart is not None:
-                st.plotly_chart(chart, config=PLOTLY_CONFIG, use_container_width=True)
-            st.dataframe(result, hide_index=True, use_container_width=True)
+                st.plotly_chart(chart, config=PLOTLY_CONFIG, width="stretch")
+            st.dataframe(result, hide_index=True, width="stretch")
     else:
         callout(
             "<b>The question could not be answered safely.</b> "
@@ -184,7 +184,7 @@ with st.expander("How reliable is this assistant?"):
     )
     chart_path = ROOT / "genai" / "results" / "accuracy_per_step.png"
     if chart_path.exists():
-        st.image(str(chart_path), use_container_width=True)
+        st.image(str(chart_path), width="stretch")
 st.markdown(
     f'<div class="cx-note" style="color:{INK}">Answers come from the Olist star schema '
     "(DuckDB). Business definitions: <code>genai/semantic_layer.yaml</code>.</div>",

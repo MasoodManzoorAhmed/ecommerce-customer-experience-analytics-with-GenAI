@@ -5,9 +5,9 @@ from __future__ import annotations
 import itertools
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import joblib
-import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -25,6 +25,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 
 from src.features import CATEGORICAL_FEATURES, FEATURES, NUMERIC_FEATURES, TARGET
+
+if TYPE_CHECKING:
+    import lightgbm as lgb
 
 SEED = 42
 MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
@@ -150,6 +153,10 @@ def tune_lgbm(
 
     weighted=True sets scale_pos_weight = negatives / positives (class imbalance correction).
     """
+    # imported here, not at the top: the app loads this module (the saved model refers to a
+    # helper in it) and should not need LightGBM installed just to score orders
+    import lightgbm as lgb
+
     pos_weight = float((y_tr == 0).sum() / (y_tr == 1).sum())
     rows, best = [], None
     for leaves, mcs, w in itertools.product(num_leaves, min_child_samples, weighted):

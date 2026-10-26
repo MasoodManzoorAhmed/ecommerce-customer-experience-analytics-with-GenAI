@@ -55,13 +55,16 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [ ] Streamlit app deployed (Day 7, after the GitHub push; URL: …)
 
 ### Day 7: Packaging (first pass)
-- [ ] GitHub Actions CI (ruff + pytest) · Dockerfile (nice-to-have, cut first if short on time)
+- [x] GitHub Actions CI (ruff + pytest; CPU torch); without the database: 140 passed, 42 skipped (checked locally with the DB hidden)
+- [x] Streamlit Cloud prep: lean `app/requirements.txt` (12 packages, no torch), all 4 pages load in a clean env; LightGBM import made lazy (the Risk page no longer needs it); `use_container_width` → `width="stretch"`
+- [ ] Push to GitHub · deploy on Streamlit Cloud · app screenshots (owner)
+- [ ] Dockerfile (nice-to-have, first to cut)
 - [ ] README results filled in · résumé bullets · first 10 applications
 
 ### Days 8–10: Module 2 (required)
 - [x] Gold labels (200) · LLM labels (1,500) · TF-IDF baseline
 - [x] LoRA fine-tune (CPU) + zero-shot comparison (zero-shot LLM wins on quality)
-- [ ] Second-annotator agreement (Cohen's kappa) after the free-cap reset
+- [x] Second-annotator agreement: kappa 0.876 (north-mini-code vs gold)
 - [x] Apply to all reviews → `fact_review_theme` → app Themes page (LoRA labels; cascade LLM pass running)
 - [x] Cascade final labels (published 2026-10-26)
 - [x] Power BI review-themes page: data export, 3 measures, guide (Step 8b)
@@ -184,7 +187,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-25 | LoRA labels for all reviews (published, interim) | 14,375 rows in 20.7 min on CPU · never_arrived 25.3% · wrong_or_missing 23.4% · other 15.3% · late 13.4% · quality 11.8% · damaged 10.7% (row shares) · 38.3% of reviews below 0.7 confidence → cascade sends 5,450 of 14,246 reviews to the LLM | `fact_review_theme`, `app/data/review_themes.parquet` |
 | 2026-10-25 | Insight (LoRA labels): on-time orders | 9,476 bad reviews on orders delivered on time: 65.5% are about the product (wrong/missing, damaged, quality); 10.5% (993) say 'never arrived' although the order is marked delivered | app Themes page |
 | 2026-10-26 | **Cascade final labels (published)** | 5,450 of 14,246 distinct reviews (38.3%) sent to local qwen 7B in 273 requests (5.0 s/review, 0 incomplete batches, ~7.6 h); the LLM changed LoRA's label on 45.8% of them · final shares (distinct reviews): wrong_or_missing_item 25.6% · never_arrived 25.1% · other 16.9% · late_delivery 12.7% · damaged 10.0% · product_quality 9.7% · on-time orders (9,476 bad reviews): 64.9% about the product, 9.9% (936) 'never arrived' although marked delivered | `fact_review_theme`, `app/data/review_themes.parquet` |
-| 2026-10-25 | Second annotator (north-mini-code) | 3 of 10 batches done when the 50/day free cap hit; resumes from the cache after the reset | `results/llm_cache.jsonl` |
+| 2026-10-26 | **Second annotator (north-mini-code, blind) vs gold labels** | 200 reviews, 10 requests, 0 incomplete · agreement 90.0% · **Cohen's kappa 0.876** (almost perfect) · per-theme F1: wrong/missing 0.95 · damaged 0.93 · never arrived 0.91 · quality 0.90 · other 0.88 · late 0.73 (hardest, as for every approach). Both judges are LLMs, so shared blind spots are possible: strong evidence, not a human check. As a classifier north scores macro-F1 0.884 on gold (> local qwen 0.781), but the free cap (50 requests × 20 reviews/day) would need ~15 days for all 14,246 reviews | `results/second_annotator_agreement.json` |
 
 ## Decisions log
 

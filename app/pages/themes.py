@@ -98,7 +98,7 @@ with c1:
     fig = style_fig(fig, height=330)
     fig.update_xaxes(tickformat=".0%", range=[0, s["share"].max() * 1.25])
     fig.update_yaxes(showgrid=False)
-    st.plotly_chart(fig, config=PLOTLY_CONFIG, use_container_width=True)
+    st.plotly_chart(fig, config=PLOTLY_CONFIG, width="stretch")
 with c2:
     section("Theme mix by delivery situation", f"share of each situation's bad reviews · {scope}")
     mix = m.theme_by_situation(df)
@@ -123,7 +123,7 @@ with c2:
     )
     fig.update_xaxes(tickformat=".0%", range=[0, 1])
     fig.update_yaxes(showgrid=False)
-    st.plotly_chart(fig, config=PLOTLY_CONFIG, use_container_width=True)
+    st.plotly_chart(fig, config=PLOTLY_CONFIG, width="stretch")
 
 on_time = df[df["situation"] == "on time"]
 if len(on_time):
@@ -174,7 +174,7 @@ if not comp.empty:
             }
         ),
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         column_config={
             "Macro-F1": st.column_config.NumberColumn(format="%.3f"),
             "Accuracy": st.column_config.NumberColumn(format="percent"),

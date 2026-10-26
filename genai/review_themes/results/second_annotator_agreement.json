@@ -1,0 +1,63 @@
+{
+ "n": 200,
+ "agreement": 0.9,
+ "kappa": 0.876252938992699,
+ "per_theme_f1": {
+  "never_arrived": 0.9142857142857143,
+  "wrong_or_missing_item": 0.9523809523809523,
+  "damaged": 0.926829268292683,
+  "late_delivery": 0.7333333333333333,
+  "product_quality": 0.896551724137931,
+  "other": 0.8780487804878049
+ },
+ "crosstab": {
+  "damaged": {
+   "damaged": 19,
+   "late_delivery": 0,
+   "never_arrived": 0,
+   "other": 0,
+   "product_quality": 2,
+   "wrong_or_missing_item": 0
+  },
+  "late_delivery": {
+   "damaged": 0,
+   "late_delivery": 11,
+   "never_arrived": 5,
+   "other": 0,
+   "product_quality": 0,
+   "wrong_or_missing_item": 0
+  },
+  "never_arrived": {
+   "damaged": 0,
+   "late_delivery": 0,
+   "never_arrived": 48,
+   "other": 3,
+   "product_quality": 0,
+   "wrong_or_missing_item": 0
+  },
+  "other": {
+   "damaged": 0,
+   "late_delivery": 2,
+   "never_arrived": 1,
+   "other": 36,
+   "product_quality": 2,
+   "wrong_or_missing_item": 0
+  },
+  "product_quality": {
+   "damaged": 1,
+   "late_delivery": 0,
+   "never_arrived": 0,
+   "other": 0,
+   "product_quality": 26,
+   "wrong_or_missing_item": 0
+  },
+  "wrong_or_missing_item": {
+   "damaged": 0,
+   "late_delivery": 1,
+   "never_arrived": 0,
+   "other": 2,
+   "product_quality": 1,
+   "wrong_or_missing_item": 40
+  }
+ }
+}

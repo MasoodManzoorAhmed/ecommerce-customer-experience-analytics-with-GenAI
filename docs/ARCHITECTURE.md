@@ -146,7 +146,7 @@ question ─► retrieve top-k similar solved examples (embeddings)        [step
   3. Zero-shot LLM with the taxonomy in the prompt (`llm_labeler.py gold`).
 - **Result:** zero-shot LLM 0.781 > LoRA 0.714 > TF-IDF 0.697 macro-F1; speed 3.9 s vs 0.11 s vs 0.0006 s per review.
 - **Production labelling** (`apply.py`): a **confidence cascade**: LoRA labels everything; reviews with top probability < 0.7 (38%) go to the LLM. Output → DuckDB `fact_review_theme` (review_id, order_id, theme, source) and `app/data/review_themes.parquet`. LoRA predictions are saved and LLM replies cached, so the run resumes after an interruption.
-- **Label quality:** an independent second model (north-mini-code) labels the gold set; agreement with the gold labels is measured with Cohen's kappa (`evaluate.py agreement`).
+- **Label quality:** an independent second model (north-mini-code) labelled the gold set blind: 90% agreement, Cohen's kappa 0.876 (`llm_labeler.py second`, `evaluate.py second`). Both judges are LLMs, so this is strong evidence, not a substitute for a second human.
 
 ## 7. Streamlit app (`app/`)
 

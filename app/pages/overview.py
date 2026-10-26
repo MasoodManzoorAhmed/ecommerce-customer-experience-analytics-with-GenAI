@@ -88,7 +88,7 @@ with c1:
         yshift=12,
         font=dict(color=INK, size=11),
     )
-    st.plotly_chart(style_fig(fig), config=PLOTLY_CONFIG, use_container_width=True)
+    st.plotly_chart(style_fig(fig), config=PLOTLY_CONFIG, width="stretch")
 with c2:
     section("Late-delivery rate", f"share of delivered orders arriving late · {scope}")
     avg_late = 1 - k["on_time_rate"]
@@ -112,7 +112,7 @@ with c2:
         xanchor="left",
         font=dict(color="#7A6A4F", size=11),
     )
-    st.plotly_chart(style_fig(fig, percent=True), config=PLOTLY_CONFIG, use_container_width=True)
+    st.plotly_chart(style_fig(fig, percent=True), config=PLOTLY_CONFIG, width="stretch")
 
 # ---------------------------------------------------------------- the core finding
 d = m.delay_reviews(dr)
@@ -133,7 +133,7 @@ with c3:
         )
     )
     fig.update_yaxes(range=[0, 5.2])
-    st.plotly_chart(style_fig(fig), config=PLOTLY_CONFIG, use_container_width=True)
+    st.plotly_chart(style_fig(fig), config=PLOTLY_CONFIG, width="stretch")
 with c4:
     section("What the data says", scope)
     late_buckets = d[d["late"]]
@@ -184,9 +184,7 @@ else:
         )
     )
     fig.update_yaxes(range=[0.75, 1.0])
-    st.plotly_chart(
-        style_fig(fig, height=300, percent=True), config=PLOTLY_CONFIG, use_container_width=True
-    )
+    st.plotly_chart(style_fig(fig, height=300, percent=True), config=PLOTLY_CONFIG, width="stretch")
 
 st.markdown(
     '<div class="cx-note">Definitions: revenue = item prices of delivered orders, excluding '
