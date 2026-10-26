@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 7 packaging: repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) complete; app live on Streamlit Cloud; next: app screenshots, Gemma comparison, Power BI page 5
+## Status: Day 7 packaging: repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) complete; app live on Streamlit Cloud with README screenshots; next: Gemma comparison, Power BI page 5
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -59,7 +59,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Streamlit Cloud prep: lean `app/requirements.txt` (12 packages, no torch), all 4 pages load in a clean env; LightGBM import made lazy (the Risk page no longer needs it); `use_container_width` → `width="stretch"`
 - [x] Pushed to GitHub (2026-10-26); CI green on GitHub's Linux runner
 - [x] Deployed on Streamlit Community Cloud: https://olist-cx-analytics.streamlit.app/ (Python 3.12, `app/requirements.txt`)
-- [ ] App screenshots in the README (owner)
+- [x] App screenshots in the README (`app/screenshots/`, 1440 px, captured from the local app; Ask the data shows a real answered question)
 - [ ] Dockerfile (nice-to-have, first to cut)
 - [ ] README results filled in · résumé bullets · first 10 applications
 

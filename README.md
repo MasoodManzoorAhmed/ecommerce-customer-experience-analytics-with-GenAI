@@ -90,6 +90,20 @@ Olist CSVs → DuckDB (staging → star schema → SQL analyses)
 **4. Seller detail (drill-through):** right-click any seller to see their revenue, on-time rate and reviews against all sellers.
 ![Seller detail](powerbi/screenshots/04_seller_detail.png)
 
+### Streamlit app ([live](https://olist-cx-analytics.streamlit.app/))
+
+**1. Overview:** every KPI rebuilt for the chosen year and state; late deliveries cost about 2 stars.
+![App overview](app/screenshots/01_overview.png)
+
+**2. Late-delivery risk:** a real order from the unseen test period, its predicted risk, the SHAP reasons and what-if sliders.
+![Late-delivery risk](app/screenshots/02_late_delivery_risk.png)
+
+**3. Ask the data:** a plain-English question becomes SQL (always shown), checked by guardrails and run read-only; the answer as a chart and table (runs locally with the free Ollama model).
+![Ask the data](app/screenshots/03_ask_the_data.png)
+
+**4. Review themes:** 14,246 bad reviews classified; even on-time orders get bad reviews mainly for product problems.
+![Review themes](app/screenshots/04_review_themes.png)
+
 ### "Ask the data": accuracy per improvement step
 
 ![Accuracy per step](genai/results/accuracy_per_step.png)
@@ -129,8 +143,6 @@ wrong or missing item 25.6% · never arrived 25.1% · other 16.9% · late delive
 product quality 9.7%. **Label check:** a second model from another provider (north-mini-code) labelled the 200 gold
 reviews blind: 90% agreement, Cohen's kappa 0.876. Source: `genai/review_themes/results/approach_comparison.csv`,
 `second_annotator_agreement.json`, `docs/PROGRESS.md`.
-
-*(App pages will be added later.)*
 
 ## Run It Locally
 
