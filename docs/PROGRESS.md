@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 7 packaging: repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) complete; app live on Streamlit Cloud with README screenshots; next: Gemma comparison
+## Status: Day 7 packaging: repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) complete; app live on Streamlit Cloud with README screenshots; Gemma dropped (provider rate limit); remaining: optional extras (demo video, résumé bullets, LinkedIn post)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -47,7 +47,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Step c (few-shot retrieval): `genai/text_to_sql/examples.yaml` (28 solved examples, patterns only), `retriever.py` (all-MiniLM-L6-v2 embeddings, top 3, offline); leakage tests (`tests/test_examples.py`); local model **65.2% → 76.1%**
 - [x] Step d (self-correction: the error is sent back once) on the local model: **76.1% → 80.4%** (leak-free re-run) (`pipeline.answer`, `tests/test_self_correction.py`)
 - [x] Accuracy-per-step chart `genai/results/accuracy_per_step.png` + summary CSV (`genai/text_to_sql/report.py`); README results table
-- [ ] Final comparison of the best configuration on qwen (local), north-mini-code and gemma-4-31b (hosted, about 46 free requests each, one per day); re-ask m03/h01 for north-mini-code then
+- [x] Final comparison of the best configuration: qwen (local) 80.4% vs north-mini-code (hosted) 93.5%; gemma-4-31b dropped (provider rate limit, see decisions 2026-10-27). Earlier note: re-ask m03/h01 for north-mini-code then
 
 ### Day 6: Module 1 (finish) + app
 - [ ] Steps a–d measured; guardrails + tests; model comparison
@@ -192,6 +192,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-26 | **Second annotator (north-mini-code, blind) vs gold labels** | 200 reviews, 10 requests, 0 incomplete · agreement 90.0% · **Cohen's kappa 0.876** (almost perfect) · per-theme F1: wrong/missing 0.95 · damaged 0.93 · never arrived 0.91 · quality 0.90 · other 0.88 · late 0.73 (hardest, as for every approach). Both judges are LLMs, so shared blind spots are possible: strong evidence, not a human check. As a classifier north scores macro-F1 0.884 on gold (> local qwen 0.781), but the free cap (50 requests × 20 reviews/day) would need ~15 days for all 14,246 reviews | `results/second_annotator_agreement.json` |
 | 2026-10-26 | **GitHub + CI** | Repo pushed; first CI run failed at collection on Linux (14 errors: `ModuleNotFoundError: src` because plain `pytest` does not add the project root to the import path, unlike `python -m pytest` used locally); fixed with `pythonpath = ["."]` in pyproject.toml. CI green: install, ruff, pytest (without the data: 133 passed, 49 skipped, reproduced in a fresh clone) | https://github.com/MasoodManzoorAhmed/ecommerce-customer-experience-analytics-with-GenAI/actions |
 | 2026-10-26 | **Live app check** (https://olist-cx-analytics.streamlit.app/) | Overview: R$ 13.22M · 96,470 orders · 93.2% on time · 4.16 ★ · gap −2.02 ★ · Risk page scores a test order (46%, high risk) with SHAP chart and what-if sliders · Review themes: 14,246 reviews, top theme wrong or missing item 26%, 65% product problems on on-time orders · Ask the data shows the expected 'needs the database' note | browser check |
+| 2026-10-27 | **Two-model comparison, a+b+c+d (46 questions)** | north-mini-code (hosted): 43/46 = 93.5%, mean 10.2 s, 4,134 prompt / 860 completion tokens per question · qwen2.5-coder 7B (local): 37/46 = 80.4%, mean 23.3 s, 4,789 / 79 tokens · gemma-4-31b: one-off test answered 2026-10-24; HTTP 429 "temporarily rate-limited upstream" on every attempt 2026-10-26 and 2026-10-27 (after 4 automatic retries) | `genai/results/text_to_sql_runs.csv`; probe this session |
 
 ## Decisions log
 
@@ -258,6 +259,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-26 | Git history cleaned before the first push: personal planning notes removed from all commits; all commits authored as Masood Manzoor Ahmed (old global identity replaced) | Public portfolio: no personal job-search notes, one consistent author; done before publishing so no shared history was rewritten |
 | 2026-10-26 | CI publishes the last pytest lines as an annotation on failure | Job logs need a GitHub login; annotations are public, so a failing run explains itself |
 | 2026-10-27 | Power BI Page 5 (review themes) not built | Owner's decision: the dashboard keeps its 4 pages; Module 2 results are shown on the app's Review themes page (live) and in the README. Export, measures and guide stay as an optional extension |
+| 2026-10-27 | Gemma-4-31B dropped from the Module 1 comparison | Its free endpoint was refused by the provider's shared pool on every attempt for two days; the required comparison of at least 2 LLMs (FR-6.5) is met by local qwen vs hosted north-mini-code. Kept as a documented limitation and a lesson on free-tier reliability |
 
 ## Blockers / notes
 - `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.

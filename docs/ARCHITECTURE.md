@@ -132,7 +132,7 @@ question ─► retrieve top-k similar solved examples (embeddings)        [step
 
 ### 5.3 Evaluation protocol
 - `genai/eval/text_to_sql_eval.yaml`: 46 items `{id, question, gold_sql, difficulty, tags}` (YAML so multi-line SQL stays readable); the expected results are produced by running `gold_sql` (`python -m genai.text_to_sql.eval_set` → `genai/eval/text_to_sql_expected.json`). Tests check every gold query is a single SELECT on allowed tables, the stored results are in sync, and no ranking question has a tie at its cut-off.
-- Configurations evaluated in order on one fixed model (local `qwen2.5-coder:7b`): baseline → +a → +a+b → +a+b+c → +a+b+c+d; then the best configuration on 2 hosted free models (`cohere/north-mini-code:free`, `google/gemma-4-31b-it:free`).
+- Configurations evaluated in order on one fixed model (local `qwen2.5-coder:7b`): baseline → +a → +a+b → +a+b+c → +a+b+c+d; then the best configuration on a hosted free model (`cohere/north-mini-code:free`: 93.5% vs 80.4% local). `google/gemma-4-31b-it:free` was planned as a third model but dropped: the provider rate-limited its free endpoint on every attempt (2026-10-26/27).
 - Output: `genai/results/text_to_sql_runs.csv` (one row per question × configuration × model), `text_to_sql_summary.csv` and `accuracy_per_step.png` (`python -m genai.text_to_sql.report`); accuracy, mean latency and tokens per question (cost US$0).
 
 ## 6. GenAI Module 2 (required): review complaint themes

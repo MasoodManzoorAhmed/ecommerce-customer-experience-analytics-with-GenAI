@@ -42,7 +42,7 @@ The project follows the standard analytics order: **understand the business → 
 | 8 | **Predict late deliveries** | A model that estimates, at the moment of purchase, how likely an order is to arrive late, and explains why | [Model notebook](notebooks/02_late_delivery_model.ipynb) | ✅ |
 | 9 | **Build the dashboard** | Power BI report for managers: overview, delivery and satisfaction, sellers and categories, plus a seller drill-through page; every number checked against SQL (48 checks) | `powerbi/` ([build guide](powerbi/POWERBI_GUIDE.md), [measures](powerbi/DAX_MEASURES_NOTES.md), [screenshots](#screenshots)) | ✅ |
 | 10 | **Excel management report** | Monthly KPI pack (month and state selectors), PivotTables with slicers and PivotCharts, a what-if sheet with Data Tables, and 19 reconciliation checks against SQL | `excel/Monthly_CX_Report.xlsx`, `scripts/build_excel_report.py` | ✅ |
-| 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 46 test questions, 34.8% → 80.4% step by step ([chart](#ask-the-data-accuracy-per-improvement-step)), 93.5% on a hosted free model | `genai/semantic_layer.yaml`, `genai/eval/`, `genai/text_to_sql/` | ✅ (Gemma comparison pending) |
+| 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 46 test questions, 34.8% → 80.4% step by step ([chart](#ask-the-data-accuracy-per-improvement-step)), 93.5% on a hosted free model | `genai/semantic_layer.yaml`, `genai/eval/`, `genai/text_to_sql/` | ✅ |
 | 12 | **Web app** | Streamlit app: Overview (KPIs and the delay → review story, filterable), Late-delivery risk (score a real order, SHAP explanation, what-if sliders), Ask the data (SQL always shown) | `app/` | ✅ local (deployment on Day 7) |
 | 13 | **GenAI: review themes** | Classify what unhappy customers complain about: three approaches compared on 200 hand-labelled reviews, then a LoRA + LLM cascade labels all 14,246 ([results](#review-themes-three-approaches-compared)) | `genai/review_themes/` | ✅ |
 | 14 | **Package and share** | Automated checks, final write-up, demo video | `.github/`, this README | ⬜ |
@@ -122,7 +122,16 @@ improvement added per step. A query counts as correct when its **result** matche
 
 Source: `genai/results/text_to_sql_summary.csv` (`python -m genai.text_to_sql.report`). The best configuration
 (a+b+c+d) on a hosted free model, `cohere/north-mini-code:free`: **43/46 = 93.5%** (easy 100%, medium 94.4%,
-hard 84.6%). A third model (Gemma-4-31B) runs within the free daily quota and will be added here.
+hard 84.6%).
+
+**Model comparison** (best configuration a+b+c+d, the same 46 questions, both free):
+
+| Model | Where it runs | Accuracy | Mean time per question | Prompt tokens | Answer tokens |
+|---|---|---|---|---|---|
+| `cohere/north-mini-code:free` | Hosted (OpenRouter) | **93.5%** | 10.2 s | 4,134 | 860 (reasons before answering) |
+| `qwen2.5-coder:7b` | Local (Ollama, laptop CPU) | 80.4% | 23.3 s | 4,789 | 79 |
+
+The hosted model is more accurate and faster; the local one has no daily limit and works offline, which is why it ran the step-by-step ablation. Gemma-4-31B was planned as a third model but dropped: its free endpoint answered a one-off test on 2026-10-24, then was refused by the provider ("temporarily rate-limited upstream", Google's shared free pool) on every attempt on 2026-10-26 and 2026-10-27, even after automatic retries. A lesson in itself: free hosted models are not reliable enough to depend on, hence the local main model, the disk cache and resumable runs.
 
 ### Review themes: three approaches compared
 

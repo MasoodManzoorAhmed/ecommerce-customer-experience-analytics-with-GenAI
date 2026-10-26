@@ -106,7 +106,7 @@ A marketplace's reputation depends on customer reviews. Bad reviews reduce repea
 - FR-6.2 A baseline prompt (schema only) measured on **execution accuracy**.
 - FR-6.3 Improvements added one at a time and each measured: (a) column descriptions, (b) a semantic layer (`genai/semantic_layer.yaml`), (c) dynamic few-shot retrieval, (d) a self-correction retry.
 - FR-6.4 Guardrails: SELECT-only (parsed with sqlglot), allowed-tables list, automatic LIMIT, read-only connection, timeout.
-- FR-6.5 Compare at least 2 LLMs on accuracy, response time and tokens per query (both are free models, so cost per query is US$0; tokens show what it would cost on a paid tier).
+- FR-6.5 Compare at least 2 LLMs on accuracy, response time and tokens per query (both are free models, so cost per query is US$0; tokens show what it would cost on a paid tier). **Met:** local `qwen2.5-coder:7b` 80.4% vs hosted `cohere/north-mini-code:free` 93.5% (README). A third model, `google/gemma-4-31b-it:free`, was dropped because its free endpoint was rate-limited by the provider on every attempt (2026-10-26/27).
 - FR-6.6 Results table + chart ("accuracy per step") in the README.
 
 ### FR-7 Streamlit app
@@ -132,7 +132,7 @@ A marketplace's reputation depends on customer reviews. Bad reviews reduce repea
 | NFR-1 Security | No API keys or secrets in the repo; `.env` is git-ignored; `.env.example` documents the variables. The LLM can only run read-only SELECT queries. |
 | NFR-2 Reproducibility | Python 3.12 virtual environment, pinned `requirements.txt`, fixed random seeds, scripts that rebuild the database from the raw CSVs. |
 | NFR-3 Correctness | No data leakage (time-based split, purchase-time features, fitting preprocessing on training data only). **All numbers in the docs and README come from actual runs, never invented.** |
-| NFR-4 Cost | **US$0: free OpenRouter models only** (`cohere/north-mini-code:free`, `google/gemma-4-31b-it:free`); every response cached on disk; retries with backoff; evaluations run in batches to respect free-tier rate limits. |
+| NFR-4 Cost | **US$0: free OpenRouter models only** (`cohere/north-mini-code:free`; `google/gemma-4-31b-it:free` planned but dropped, provider rate limit) plus a free local model (`qwen2.5-coder:7b` via Ollama); every response cached on disk; retries with backoff; evaluations run in batches to respect free-tier rate limits. |
 | NFR-5 Performance | App pages load in < 3 s; text-to-SQL answers in < 10 s. |
 | NFR-6 Code quality | Ruff lint clean; pytest tests for feature building, SQL guardrails and the evaluation harness; GitHub Actions CI. |
 | NFR-7 Documentation | README with problem, architecture, results, how to run, screenshots, and dataset credit. |

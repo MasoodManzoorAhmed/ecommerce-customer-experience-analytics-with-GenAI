@@ -533,8 +533,11 @@ The numbers behind it, if they dig deeper:
 ### 🔴 "Did any test data leak into your prompts?"
 **Yes, and I found it in my own code review.** The semantic layer file also stored the expected value of each metric, for a test that checks the definitions against Power BI, and the whole file went into the prompt, so 7 evaluation answers (e.g. total revenue R$ 13,220,248.93) were visible to the model. I checked every stored answer: none had copied a number. But "probably not used" isn't proof, so I stripped the test values from the prompt, added a test that no answer can appear in it again, and re-ran the affected steps. The honest results dropped slightly: semantic layer 65.2% → **63.0%**, final 82.6% → **80.4%**. I report the leak-free numbers, and the history is in the progress log.
 
+### 🟡 "Why do you compare only two models?"
+**Two is what the requirement needed, and the third was blocked by the provider, not by my choice.** Local Qwen 7B scored 80.4% and hosted north-mini-code 93.5% on the same 46 questions (10.2 s vs 23.3 s per question). Gemma-4-31B answered a test once, then its free endpoint returned "rate-limited upstream" on every attempt for two days. I documented that instead of reporting partial numbers, and it confirmed my design choice: free hosted models are unreliable, so the main model is local, every answer is cached, and runs resume.
+
 ### 🟡 "Why free LLMs?"
-**Cost discipline: the whole module runs at US$0** on two free OpenRouter models (`cohere/north-mini-code:free` and `google/gemma-4-31b-it:free`). Free models are rate-limited, so the design caches every response on disk, retries with backoff and runs the evaluation in batches. It's the same engineering you'd need under a production budget or quota.
+**Cost discipline: the whole module runs at US$0** on free models: a local one (`qwen2.5-coder:7b` via Ollama) and a hosted one (`cohere/north-mini-code:free`). A planned third model, Gemma-4-31B, was dropped because its free endpoint was rate-limited by the provider on every attempt for two days. Free models are rate-limited, so the design caches every response on disk, retries with backoff and runs the evaluation in batches. It's the same engineering you'd need under a production budget or quota.
 
 ---
 

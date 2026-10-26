@@ -21,7 +21,7 @@ APP_CACHE = ROOT / "app" / ".cache" / "llm_cache.jsonl"  # app questions never t
 LOCAL_MODEL = "ollama/qwen2.5-coder-16k"
 HOSTED_MODELS = {
     "cohere/north-mini-code:free": "OpenRouter · north-mini-code (free, 50/day)",
-    "google/gemma-4-31b-it:free": "OpenRouter · gemma-4-31b (free, 50/day)",
+    "google/gemma-4-31b-it:free": "OpenRouter · gemma-4-31b (free, often rate-limited)",
 }
 SUGGESTIONS = [  # deliberately NOT evaluation questions
     "Which 5 product categories had the best average review in 2018?",
