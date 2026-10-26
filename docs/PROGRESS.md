@@ -3,13 +3,13 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 8-10: Module 2 complete (LLM 0.781 > LoRA 0.714 > TF-IDF 0.697 macro-F1; cascade labels all 14,246 bad reviews → fact_review_theme, app page, Power BI guide); Module 1 hosted run 93.5%; next: second-annotator kappa, Gemma comparison, build Power BI page 5, GitHub + CI + deployment
+## Status: Day 7 packaging: repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) complete; next: Streamlit Cloud deployment, app screenshots, Gemma comparison, Power BI page 5
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
 - [x] Python 3.12.10 installed; `.venv` created; `pip install -r requirements.txt` (exact versions in `requirements.lock.txt`)
 - [x] Git repo initialised, first commit (`aa1b112`)
-- [ ] GitHub repo created (`ecommerce-customer-experience-analytics-with-GenAI`) and pushed
+- [x] GitHub repo created (`ecommerce-customer-experience-analytics-with-GenAI`) and pushed (https://github.com/MasoodManzoorAhmed/ecommerce-customer-experience-analytics-with-GenAI)
 - [x] Dataset downloaded to `data/raw/` via `scripts/download_data.py` (Kaggle public endpoint, no API key needed)
 - [x] `.env` created from `.env.example` (OpenRouter key, free tier; `LLM_MODEL=cohere/north-mini-code:free`); git-ignored and untracked (checked); key accepted by OpenRouter (usage $0)
 
@@ -57,7 +57,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 ### Day 7: Packaging (first pass)
 - [x] GitHub Actions CI (ruff + pytest; CPU torch); without the database: 140 passed, 42 skipped (checked locally with the DB hidden)
 - [x] Streamlit Cloud prep: lean `app/requirements.txt` (12 packages, no torch), all 4 pages load in a clean env; LightGBM import made lazy (the Risk page no longer needs it); `use_container_width` → `width="stretch"`
-- [ ] Push to GitHub · deploy on Streamlit Cloud · app screenshots (owner)
+- [x] Pushed to GitHub (2026-10-26); CI green on GitHub's Linux runner
+- [ ] Deploy on Streamlit Cloud · app screenshots (owner)
 - [ ] Dockerfile (nice-to-have, first to cut)
 - [ ] README results filled in · résumé bullets · first 10 applications
 
@@ -188,6 +189,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-25 | Insight (LoRA labels): on-time orders | 9,476 bad reviews on orders delivered on time: 65.5% are about the product (wrong/missing, damaged, quality); 10.5% (993) say 'never arrived' although the order is marked delivered | app Themes page |
 | 2026-10-26 | **Cascade final labels (published)** | 5,450 of 14,246 distinct reviews (38.3%) sent to local qwen 7B in 273 requests (5.0 s/review, 0 incomplete batches, ~7.6 h); the LLM changed LoRA's label on 45.8% of them · final shares (distinct reviews): wrong_or_missing_item 25.6% · never_arrived 25.1% · other 16.9% · late_delivery 12.7% · damaged 10.0% · product_quality 9.7% · on-time orders (9,476 bad reviews): 64.9% about the product, 9.9% (936) 'never arrived' although marked delivered | `fact_review_theme`, `app/data/review_themes.parquet` |
 | 2026-10-26 | **Second annotator (north-mini-code, blind) vs gold labels** | 200 reviews, 10 requests, 0 incomplete · agreement 90.0% · **Cohen's kappa 0.876** (almost perfect) · per-theme F1: wrong/missing 0.95 · damaged 0.93 · never arrived 0.91 · quality 0.90 · other 0.88 · late 0.73 (hardest, as for every approach). Both judges are LLMs, so shared blind spots are possible: strong evidence, not a human check. As a classifier north scores macro-F1 0.884 on gold (> local qwen 0.781), but the free cap (50 requests × 20 reviews/day) would need ~15 days for all 14,246 reviews | `results/second_annotator_agreement.json` |
+| 2026-10-26 | **GitHub + CI** | Repo pushed; first CI run failed at collection on Linux (14 errors: `ModuleNotFoundError: src` because plain `pytest` does not add the project root to the import path, unlike `python -m pytest` used locally); fixed with `pythonpath = ["."]` in pyproject.toml. CI green: install, ruff, pytest (without the data: 133 passed, 49 skipped, reproduced in a fresh clone) | https://github.com/MasoodManzoorAhmed/ecommerce-customer-experience-analytics-with-GenAI/actions |
 
 ## Decisions log
 
@@ -251,8 +253,10 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | App: Overview and Risk read small committed extracts; Ask needs the DB + a model | Deployable to Streamlit Cloud without the 1 GB database; the GenAI page degrades with a clear message |
 | 2026-10-24 | App fonts from the visitor's system (no Google Fonts); file watcher off | No visitor IP sent to a third party (GDPR); the watcher scanned every optional transformers module |
 | 2026-10-24 | App questions use their own LLM cache (`app/.cache`, git-ignored) | Typed questions never mix with the evaluation cache or results |
+| 2026-10-26 | Git history cleaned before the first push: personal planning notes removed from all commits; all commits authored as Masood Manzoor Ahmed (old global identity replaced) | Public portfolio: no personal job-search notes, one consistent author; done before publishing so no shared history was rewritten |
+| 2026-10-26 | CI publishes the last pytest lines as an annotation on failure | Job logs need a GitHub login; annotations are public, so a failing run explains itself |
 
 ## Blockers / notes
 - `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.
-- Global git identity on this PC is `sarkarmenssalon-creator`; first commit was authored as Masood Manzoor Ahmed via a per-commit override. Set a repo-local identity before the next commit.
+- Git identity on this PC is now Masood Manzoor Ahmed (global and repo); the earlier `sarkarmenssalon-creator` identity was replaced on 2026-10-26. Set a repo-local identity before the next commit.
 - Power BI: no native DuckDB connector; plan is to export star-schema tables to Parquet on Day 4.

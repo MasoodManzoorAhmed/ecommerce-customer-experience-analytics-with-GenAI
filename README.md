@@ -1,5 +1,7 @@
 # E-commerce Customer Experience Analytics with ML & GenAI
 
+[![CI](https://github.com/MasoodManzoorAhmed/ecommerce-customer-experience-analytics-with-GenAI/actions/workflows/ci.yml/badge.svg)](https://github.com/MasoodManzoorAhmed/ecommerce-customer-experience-analytics-with-GenAI/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 > **Why do customers leave bad reviews, and can we predict and prevent late deliveries?**
 > An end-to-end analysis of ~100,000 real e-commerce orders using **SQL, Python, Power BI, Excel, machine learning and GenAI**.
 
