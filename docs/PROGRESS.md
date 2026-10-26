@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 7 packaging: repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) complete; app live on Streamlit Cloud with README screenshots; Gemma dropped (provider rate limit); remaining: optional extras (demo video, résumé bullets, LinkedIn post)
+## Status: Complete (2026-10-27): repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) done; app live on Streamlit Cloud; README final with results and screenshots. Cut by plan: Dockerfile, Power BI Page 5, Gemma (provider rate limit). Only job-search extras remain, outside the repo
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -50,9 +50,9 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Final comparison of the best configuration: qwen (local) 80.4% vs north-mini-code (hosted) 93.5%; gemma-4-31b dropped (provider rate limit, see decisions 2026-10-27). Earlier note: re-ask m03/h01 for north-mini-code then
 
 ### Day 6: Module 1 (finish) + app
-- [ ] Steps a–d measured; guardrails + tests; model comparison
+- [x] Steps a–d measured; guardrails + tests; model comparison (finished on Day 5, see above)
 - [x] Streamlit app built and tested locally (`app/`): Overview, Late-delivery risk (SHAP + what-if), Ask the data (pipeline a+b+c+d, local Ollama or OpenRouter, SQL always shown, guardrails), Review themes placeholder; design system `app/ui.py` + `.streamlit/config.toml`; extracts `app/data/*.parquet` via `scripts/export_app_data.py` + `sql/09_app_data.sql`; `tests/test_app.py` (KPIs = Power BI values, pages render)
-- [ ] Streamlit app deployed (Day 7, after the GitHub push; URL: …)
+- [x] Streamlit app deployed (Day 7, after the GitHub push): https://olist-cx-analytics.streamlit.app/
 
 ### Day 7: Packaging (first pass)
 - [x] GitHub Actions CI (ruff + pytest; CPU torch); without the database: 140 passed, 42 skipped (checked locally with the DB hidden)
@@ -60,8 +60,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Pushed to GitHub (2026-10-26); CI green on GitHub's Linux runner
 - [x] Deployed on Streamlit Community Cloud: https://olist-cx-analytics.streamlit.app/ (Python 3.12, `app/requirements.txt`)
 - [x] App screenshots in the README (`app/screenshots/`, 1440 px, captured from the local app; Ask the data shows a real answered question)
-- [ ] Dockerfile (nice-to-have, first to cut)
-- [ ] README results filled in · résumé bullets · first 10 applications
+- [~] Dockerfile: cut (first item in the cutting order; Streamlit Cloud deployment doesn't need it, see decisions 2026-10-27)
+- [x] README results filled in (Modules 1 and 2, ML, live app link, screenshots)
 
 ### Days 8–10: Module 2 (required)
 - [x] Gold labels (200) · LLM labels (1,500) · TF-IDF baseline
@@ -71,7 +71,13 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Cascade final labels (published 2026-10-26)
 - [x] Power BI review-themes page prepared: data export, 3 measures, guide (Step 8b, optional)
 - [~] Power BI Page 5: skipped by owner's decision (2026-10-27); review themes are shown in the app instead
-- [ ] Final README · 3-minute demo video · LinkedIn post
+- [x] Final README (results, two-model comparison, Module 2 table, live app, screenshots)
+
+### After the project: job search (owner, outside the repo)
+- [ ] Résumé bullets
+- [ ] 3-minute demo video (add the link to the README when recorded)
+- [ ] LinkedIn post
+- [ ] First 10 applications
 
 ## Results log (real numbers only)
 
@@ -259,6 +265,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-26 | Git history cleaned before the first push: personal planning notes removed from all commits; all commits authored as Masood Manzoor Ahmed (old global identity replaced) | Public portfolio: no personal job-search notes, one consistent author; done before publishing so no shared history was rewritten |
 | 2026-10-26 | CI publishes the last pytest lines as an annotation on failure | Job logs need a GitHub login; annotations are public, so a failing run explains itself |
 | 2026-10-27 | Power BI Page 5 (review themes) not built | Owner's decision: the dashboard keeps its 4 pages; Module 2 results are shown on the app's Review themes page (live) and in the README. Export, measures and guide stay as an optional extension |
+| 2026-10-27 | Dockerfile not built (cut) | First item in the planned cutting order (FR-9.1 marks it nice-to-have); the app runs on Streamlit Community Cloud from `app/requirements.txt` and CI covers lint and tests, so Docker added no required capability |
 | 2026-10-27 | Gemma-4-31B dropped from the Module 1 comparison | Its free endpoint was refused by the provider's shared pool on every attempt for two days; the required comparison of at least 2 LLMs (FR-6.5) is met by local qwen vs hosted north-mini-code. Kept as a documented limitation and a lesson on free-tier reliability |
 
 ## Blockers / notes

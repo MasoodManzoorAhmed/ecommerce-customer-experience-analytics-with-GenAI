@@ -46,7 +46,7 @@ A marketplace's reputation depends on customer reviews. Bad reviews reduce repea
 - GenAI Module 1: text-to-SQL assistant with an evaluation set, step-by-step improvement and guardrails.
 - GenAI Module 2 (required): review complaint-theme classification comparing TF-IDF, a LoRA-tuned transformer and a zero-shot LLM.
 - A written data-quality audit (every issue found, its size, the fix and the reason).
-- Docker image + GitHub Actions CI.
+- GitHub Actions CI (a Docker image was planned as a nice-to-have and cut).
 - Streamlit app, deployed publicly.
 - README, demo video, résumé bullets.
 
@@ -122,7 +122,7 @@ A marketplace's reputation depends on customer reviews. Bad reviews reduce repea
 - FR-8.6 The result is reported honestly, whichever approach wins.
 
 ### FR-9 Packaging and delivery
-- FR-9.1 GitHub Actions CI running ruff + pytest (required). A `Dockerfile` that runs the Streamlit app, plus a Docker build step in CI (**nice-to-have, about 1–2 hours, the first item to cut**: Streamlit Community Cloud deployment doesn't need Docker).
+- FR-9.1 GitHub Actions CI running ruff + pytest (required). A `Dockerfile` that runs the Streamlit app, plus a Docker build step in CI (**nice-to-have, about 1–2 hours, the first item to cut**: Streamlit Community Cloud deployment doesn't need Docker). **Status: CI met; Dockerfile cut (2026-10-27).**
 - FR-9.2 README with results, screenshots, the data-quality summary and a demo video link.
 
 ## 7. Non-Functional Requirements
@@ -187,13 +187,13 @@ A marketplace's reputation depends on customer reviews. Bad reviews reduce repea
 
 - [ ] `data/olist.duckdb` builds from the raw CSVs via a script
 - [ ] `sql/` staging, star schema, business queries
-- [ ] `notebooks/00_data_quality_audit.ipynb` + `docs/DATA_QUALITY_REPORT.md`
-- [ ] `notebooks/01_eda.ipynb`, `notebooks/02_late_delivery_model.ipynb`
-- [ ] `models/` saved model + metadata
-- [ ] `powerbi/` .pbix + screenshots
-- [ ] `excel/Monthly_CX_Report.xlsx`
-- [ ] `genai/` semantic layer, evaluation set, text-to-SQL module, results
-- [ ] `app/` Streamlit app (deployed URL)
-- [ ] `genai/review_themes/` Module 2 notebooks + results
-- [ ] `tests/` + CI workflow + `Dockerfile`
-- [ ] README with results, screenshots, demo video link
+- [x] `notebooks/00_data_quality_audit.ipynb` + `docs/DATA_QUALITY_REPORT.md`
+- [x] `notebooks/01_eda.ipynb`, `notebooks/02_late_delivery_model.ipynb`
+- [x] `models/` saved model + metadata
+- [x] `powerbi/` .pbix + screenshots
+- [x] `excel/Monthly_CX_Report.xlsx`
+- [x] `genai/` semantic layer, evaluation set, text-to-SQL module, results
+- [x] `app/` Streamlit app (deployed: https://olist-cx-analytics.streamlit.app/)
+- [x] `genai/review_themes/` Module 2 scripts + results
+- [x] `tests/` + CI workflow (`Dockerfile` cut, nice-to-have)
+- [x] README with results and screenshots (demo video link to add when recorded)

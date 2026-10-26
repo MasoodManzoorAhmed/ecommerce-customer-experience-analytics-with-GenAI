@@ -157,7 +157,7 @@ question ─► retrieve top-k similar solved examples (embeddings)        [step
 | Ask the data | Question box → SQL (shown) + result table + auto chart; guardrail messages |
 | Review themes | KPIs, theme shares, theme mix by delivery situation, example reviews, the three-approach comparison (filter by year and state) |
 
-Deployment: Streamlit Community Cloud from GitHub (primary); a `Dockerfile` also runs the app anywhere (local, Cloud Run), and CI builds it on every push; the DuckDB file (or Parquet extracts) is included or built at start-up; the API key goes in Streamlit secrets.
+Deployment: Streamlit Community Cloud from GitHub, with `app/requirements.txt`; the app reads small committed Parquet extracts, so it needs no database; the API key goes in Streamlit secrets. A `Dockerfile` was planned as a nice-to-have and cut (2026-10-27).
 
 ## 8. Repository structure
 
