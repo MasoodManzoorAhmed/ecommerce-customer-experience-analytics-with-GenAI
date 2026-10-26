@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 7 packaging: repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) complete; next: Streamlit Cloud deployment, app screenshots, Gemma comparison, Power BI page 5
+## Status: Day 7 packaging: repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) complete; app live on Streamlit Cloud; next: app screenshots, Gemma comparison, Power BI page 5
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -58,7 +58,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] GitHub Actions CI (ruff + pytest; CPU torch); without the database: 140 passed, 42 skipped (checked locally with the DB hidden)
 - [x] Streamlit Cloud prep: lean `app/requirements.txt` (12 packages, no torch), all 4 pages load in a clean env; LightGBM import made lazy (the Risk page no longer needs it); `use_container_width` → `width="stretch"`
 - [x] Pushed to GitHub (2026-10-26); CI green on GitHub's Linux runner
-- [ ] Deploy on Streamlit Cloud · app screenshots (owner)
+- [x] Deployed on Streamlit Community Cloud: https://olist-cx-analytics.streamlit.app/ (Python 3.12, `app/requirements.txt`)
+- [ ] App screenshots in the README (owner)
 - [ ] Dockerfile (nice-to-have, first to cut)
 - [ ] README results filled in · résumé bullets · first 10 applications
 
@@ -190,6 +191,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-26 | **Cascade final labels (published)** | 5,450 of 14,246 distinct reviews (38.3%) sent to local qwen 7B in 273 requests (5.0 s/review, 0 incomplete batches, ~7.6 h); the LLM changed LoRA's label on 45.8% of them · final shares (distinct reviews): wrong_or_missing_item 25.6% · never_arrived 25.1% · other 16.9% · late_delivery 12.7% · damaged 10.0% · product_quality 9.7% · on-time orders (9,476 bad reviews): 64.9% about the product, 9.9% (936) 'never arrived' although marked delivered | `fact_review_theme`, `app/data/review_themes.parquet` |
 | 2026-10-26 | **Second annotator (north-mini-code, blind) vs gold labels** | 200 reviews, 10 requests, 0 incomplete · agreement 90.0% · **Cohen's kappa 0.876** (almost perfect) · per-theme F1: wrong/missing 0.95 · damaged 0.93 · never arrived 0.91 · quality 0.90 · other 0.88 · late 0.73 (hardest, as for every approach). Both judges are LLMs, so shared blind spots are possible: strong evidence, not a human check. As a classifier north scores macro-F1 0.884 on gold (> local qwen 0.781), but the free cap (50 requests × 20 reviews/day) would need ~15 days for all 14,246 reviews | `results/second_annotator_agreement.json` |
 | 2026-10-26 | **GitHub + CI** | Repo pushed; first CI run failed at collection on Linux (14 errors: `ModuleNotFoundError: src` because plain `pytest` does not add the project root to the import path, unlike `python -m pytest` used locally); fixed with `pythonpath = ["."]` in pyproject.toml. CI green: install, ruff, pytest (without the data: 133 passed, 49 skipped, reproduced in a fresh clone) | https://github.com/MasoodManzoorAhmed/ecommerce-customer-experience-analytics-with-GenAI/actions |
+| 2026-10-26 | **Live app check** (https://olist-cx-analytics.streamlit.app/) | Overview: R$ 13.22M · 96,470 orders · 93.2% on time · 4.16 ★ · gap −2.02 ★ · Risk page scores a test order (46%, high risk) with SHAP chart and what-if sliders · Review themes: 14,246 reviews, top theme wrong or missing item 26%, 65% product problems on on-time orders · Ask the data shows the expected 'needs the database' note | browser check |
 
 ## Decisions log
 

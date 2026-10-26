@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/MasoodManzoorAhmed/ecommerce-customer-experience-analytics-with-GenAI/actions/workflows/ci.yml/badge.svg)](https://github.com/MasoodManzoorAhmed/ecommerce-customer-experience-analytics-with-GenAI/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+**Live app:** [olist-cx-analytics.streamlit.app](https://olist-cx-analytics.streamlit.app/) (Overview, Late-delivery risk and Review themes run in the browser; "Ask the data" needs the local database and runs on a laptop. A free app may take ~30 s to wake up.)
+
 > **Why do customers leave bad reviews, and can we predict and prevent late deliveries?**
 > An end-to-end analysis of ~100,000 real e-commerce orders using **SQL, Python, Power BI, Excel, machine learning and GenAI**.
 
@@ -188,6 +190,8 @@ streamlit run app/streamlit_app.py
 ```
 
 ## Deploy the App (Streamlit Community Cloud, free)
+
+Deployed: https://olist-cx-analytics.streamlit.app/
 
 1. Push the repository to GitHub (public).
 2. On [share.streamlit.io](https://share.streamlit.io): **Create app** → pick the repository, branch `main`,
