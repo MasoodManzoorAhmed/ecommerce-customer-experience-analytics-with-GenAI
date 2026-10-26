@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Complete (2026-10-27): repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) done; app live on Streamlit Cloud; README final with results and screenshots. Cut by plan: Dockerfile, Power BI Page 5, Gemma (provider rate limit). Only job-search extras remain, outside the repo
+## Status: Complete (2026-10-27): repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) done; app live on Streamlit Cloud; README final with results and screenshots. Cut by plan: Dockerfile, Power BI Page 5, Gemma (provider rate limit)
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -72,12 +72,6 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Power BI review-themes page prepared: data export, 3 measures, guide (Step 8b, optional)
 - [~] Power BI Page 5: skipped by owner's decision (2026-10-27); review themes are shown in the app instead
 - [x] Final README (results, two-model comparison, Module 2 table, live app, screenshots)
-
-### After the project: job search (owner, outside the repo)
-- [ ] Résumé bullets
-- [ ] 3-minute demo video (add the link to the README when recorded)
-- [ ] LinkedIn post
-- [ ] First 10 applications
 
 ## Results log (real numbers only)
 
