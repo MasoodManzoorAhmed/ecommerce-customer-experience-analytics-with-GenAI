@@ -162,7 +162,7 @@ Deployment: Streamlit Community Cloud from GitHub (primary); a `Dockerfile` also
 ## 8. Repository structure
 
 ```text
-ecommerce-customer-experience-analytics/
+ecommerce-customer-experience-analytics-with-GenAI/
 ├─ README.md · CLAUDE.md · requirements.txt · requirements.lock.txt · requirements-finetune.txt · pyproject.toml · .env.example · .gitignore
 ├─ docs/            PROJECT_REQUIREMENTS.md, ARCHITECTURE.md, PROGRESS.md, DATA_QUALITY_REPORT.md, INTERVIEW_PREP.md, figures/
 ├─ data/            raw/ (git-ignored CSVs), olist.duckdb, powerbi/*.parquet (all git-ignored, rebuilt by scripts)

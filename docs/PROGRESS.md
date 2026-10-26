@@ -9,7 +9,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
 - [x] Python 3.12.10 installed; `.venv` created; `pip install -r requirements.txt` (exact versions in `requirements.lock.txt`)
 - [x] Git repo initialised, first commit (`aa1b112`)
-- [ ] GitHub repo created (`ecommerce-customer-experience-analytics`) and pushed
+- [ ] GitHub repo created (`ecommerce-customer-experience-analytics-with-GenAI`) and pushed
 - [x] Dataset downloaded to `data/raw/` via `scripts/download_data.py` (Kaggle public endpoint, no API key needed)
 - [x] `.env` created from `.env.example` (OpenRouter key, free tier; `LLM_MODEL=cohere/north-mini-code:free`); git-ignored and untracked (checked); key accepted by OpenRouter (usage $0)
 
