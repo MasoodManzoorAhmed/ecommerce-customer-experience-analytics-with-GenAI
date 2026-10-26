@@ -45,3 +45,9 @@ app/.cache/
 genai/review_themes/results/*.log
 genai/review_themes/results/*.parquet
 genai/review_themes/results/*.joblib
+
+# Local tool settings and personal planning notes (kept on disk, not published)
+.claude/
+docs/START_PROMPT.md
+docs/BUILD_PLAN.pdf
+docs/GOALS.md

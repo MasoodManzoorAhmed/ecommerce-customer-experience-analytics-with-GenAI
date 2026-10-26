@@ -8,7 +8,7 @@ Business question: *"Why do customers leave bad reviews, and can we predict and 
 - `docs/PROGRESS.md`: what's done, what's next, real results logged so far
 - `docs/PROJECT_REQUIREMENTS.md`: scope, functional requirements (FR-1…FR-9), acceptance criteria
 - `docs/ARCHITECTURE.md`: data model, ML design, GenAI module design, repo structure, decision log
-- `docs/GOALS.md`: why the project exists, measurable targets, interview stories
+- `docs/GOALS.md` (local only, not published): why the project exists, measurable targets, interview stories
 
 ## About the owner
 - Masood: MSc Data Science (Greenwich). Targeting **Data Analyst (with GenAI)** and **Data Scientist** roles in India, UAE, Saudi Arabia, the UK and Germany, in **non-banking sectors**.

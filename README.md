@@ -28,7 +28,7 @@ The project follows the standard analytics order: **understand the business → 
 
 | # | Step | In plain words | Where to find it | Status |
 |---|---|---|---|---|
-| 1 | **Define the question** | Agree what we want to learn and how we'll judge success, before touching any data | [Requirements](docs/PROJECT_REQUIREMENTS.md), [Goals](docs/GOALS.md) | ✅ |
+| 1 | **Define the question** | Agree what we want to learn and how we'll judge success, before touching any data | [Requirements](docs/PROJECT_REQUIREMENTS.md) | ✅ |
 | 2 | **Get the data** | Download the 9 public data files from Kaggle with a script anyone can rerun | `scripts/download_data.py` | ✅ |
 | 3 | **First look at the data** | Open every file and see its size, columns and example rows (pandas `read_csv`, `.info()`, `.head()`); confirm the database copy matches the files | [Audit notebook](notebooks/00_data_quality_audit.ipynb), section 0 | ✅ |
 | 4 | **Clean and organise the data** | Using the problems spotted in the first look: fix types, remove duplicates, translate categories, then arrange the tables in a "star schema" that is fast and easy to analyse | `sql/01_staging.sql`, `sql/02_star_schema.sql` | ✅ |
@@ -168,6 +168,7 @@ python -m genai.review_themes.data                   # gold 200 / train 1,500 sp
 python -m genai.review_themes.llm_labeler gold       # zero-shot LLM on the gold set
 python -m genai.review_themes.llm_labeler train      # training labels (the "teacher")
 python -m genai.review_themes.tfidf
+pip install -r requirements-finetune.txt            # transformers + peft for the LoRA step
 python -m genai.review_themes.lora train             # CPU ~20 min; a free Colab GPU takes minutes
 python -m genai.review_themes.evaluate report        # macro-F1 table
 python -m genai.review_themes.apply cascade          # all reviews -> fact_review_theme + app data
@@ -209,13 +210,17 @@ docs/  sql/  scripts/  notebooks/  src/  models/  genai/  app/  powerbi/  excel/
 ## Documentation
 
 - [Project Requirements](docs/PROJECT_REQUIREMENTS.md)
-- [Goals](docs/GOALS.md)
+- [Data Quality Report](docs/DATA_QUALITY_REPORT.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Progress](docs/PROGRESS.md)
 
 ## Dataset and Credits
 
 [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (Kaggle). Real, anonymised commercial data from 2016–2018. Used for non-commercial portfolio purposes; see the dataset page for licence terms.
+
+## License
+
+Code: [MIT](LICENSE). The Olist data is not included and keeps its own licence (see above).
 
 ## Author
 

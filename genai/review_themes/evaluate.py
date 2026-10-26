@@ -1,6 +1,5 @@
-"""Score theme predictions against the gold set, and measure human/Claude label agreement.
+"""Score theme predictions against the gold set, and check the gold labels with a second model.
 
-    python -m genai.review_themes.evaluate agreement   # Cohen's kappa: your blind check vs gold
     python -m genai.review_themes.evaluate report      # macro-F1 of every approach on gold
     python -m genai.review_themes.evaluate second      # Cohen's kappa: 2nd-annotator model vs gold
 
@@ -17,10 +16,9 @@ import sys
 import pandas as pd
 from sklearn.metrics import accuracy_score, cohen_kappa_score, f1_score
 
-from genai.review_themes.data import DIR, RESULTS, THEMES
+from genai.review_themes.data import RESULTS, THEMES
 
 GOLD = RESULTS / "gold_labels.csv"
-BLIND = DIR / "blind_check.csv"
 # approach name -> prediction file on the gold set (review_id, theme)
 PREDICTIONS = {
     "zero-shot LLM": RESULTS / "zero_shot_gold.csv",
@@ -47,27 +45,6 @@ def score_file(path) -> dict:
     if len(both) != len(gold):
         raise ValueError(f"{path.name}: {len(both)} of {len(gold)} gold reviews predicted")
     return score(both["theme_gold"], both["theme_pred"])
-
-
-def agreement() -> dict:
-    """Kappa between the owner's blind labels and the gold labels (matched on the id prefix)."""
-    blind = pd.read_csv(BLIND, dtype={"your_theme": str}).dropna(subset=["your_theme"])
-    if blind.empty:
-        raise ValueError(f"no labels yet: fill the your_theme column in {BLIND.name} and save it")
-    blind["your_theme"] = blind["your_theme"].str.strip()
-    unknown = sorted(set(blind["your_theme"]) - set(THEMES))
-    if unknown:
-        raise ValueError(f"unknown theme names in blind_check.csv: {unknown}")
-    gold = pd.read_csv(GOLD)[["review_id", "theme"]]
-    gold["prefix"] = gold["review_id"].str[:8]
-    both = blind.merge(gold, left_on="review_id", right_on="prefix", validate="1:1")
-    disagree = both.loc[both["your_theme"] != both["theme"], ["check_no", "your_theme", "theme"]]
-    return {
-        "n": len(both),
-        "agreement": float((both["your_theme"] == both["theme"]).mean()),
-        "kappa": float(cohen_kappa_score(both["your_theme"], both["theme"])),
-        "disagreements": disagree.rename(columns={"theme": "gold"}).to_dict("records"),
-    }
 
 
 def second_annotator() -> dict:
@@ -108,10 +85,6 @@ def main() -> int:
         out = second_annotator()
         (RESULTS / "second_annotator_agreement.json").write_text(json.dumps(out, indent=1))
         print(json.dumps({k: v for k, v in out.items() if k != "crosstab"}, indent=1))
-    elif which == "agreement":
-        out = agreement()
-        (RESULTS / "blind_check_agreement.json").write_text(json.dumps(out, indent=1))
-        print(json.dumps(out, indent=1))
     else:
         print(report().round(3).to_string(index=False))
     return 0

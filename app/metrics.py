@@ -87,10 +87,6 @@ def delay_reviews(dr: pd.DataFrame) -> pd.DataFrame:
     return g.sort_values("order")
 
 
-def model_metadata() -> dict:
-    return json.loads((ROOT / "models" / "metadata.json").read_text(encoding="utf-8"))
-
-
 def risk_band(p: float, threshold: float) -> str:
     """Same bands as fact_order_risk: high at/above the cost-based threshold, medium at half."""
     if p >= threshold:

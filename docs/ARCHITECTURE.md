@@ -164,7 +164,7 @@ Deployment: Streamlit Community Cloud from GitHub (primary); a `Dockerfile` also
 ```text
 ecommerce-customer-experience-analytics/
 ├─ README.md · CLAUDE.md · requirements.txt · requirements.lock.txt · requirements-finetune.txt · pyproject.toml · .env.example · .gitignore
-├─ docs/            PROJECT_REQUIREMENTS.md, GOALS.md, ARCHITECTURE.md, PROGRESS.md, DATA_QUALITY_REPORT.md, INTERVIEW_PREP.md, figures/
+├─ docs/            PROJECT_REQUIREMENTS.md, ARCHITECTURE.md, PROGRESS.md, DATA_QUALITY_REPORT.md, INTERVIEW_PREP.md, figures/
 ├─ data/            raw/ (git-ignored CSVs), olist.duckdb, powerbi/*.parquet (all git-ignored, rebuilt by scripts)
 ├─ scripts/         download_data.py, build_db.py, run_queries.py, export_powerbi.py, powerbi_expected_values.py, build_excel_report.py
 ├─ sql/             01_staging … 08_excel_report.sql (numbered, run in order), results/

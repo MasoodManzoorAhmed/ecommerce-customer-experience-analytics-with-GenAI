@@ -13,15 +13,12 @@ import sys
 import time
 import unicodedata
 
-import joblib
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import FeatureUnion, Pipeline
 
 from genai.review_themes.data import RESULTS, SEED, read_split
-
-MODEL_PATH = RESULTS / "tfidf_model.joblib"
 
 
 def normalise(text: str) -> str:
@@ -60,7 +57,6 @@ def main() -> int:
     pred = model.predict(gold["text"])
     predict_s = time.perf_counter() - start
     gold[["review_id"]].assign(theme=pred).to_csv(RESULTS / "tfidf_gold.csv", index=False)
-    joblib.dump(model, MODEL_PATH)
     stats = {
         "train_reviews": len(train),
         "fit_seconds": fit_s,
