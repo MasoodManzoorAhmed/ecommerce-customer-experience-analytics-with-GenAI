@@ -31,7 +31,7 @@ The first lists 6 files (dim_date 852 rows … fact_order_items 112,650 rows); t
 
 ---
 
-## Step 1: Load the 6 tables (plus `fact_review_theme` for Page 5)
+## Step 1: Load the 6 tables (plus `fact_review_theme` only if you build the optional Page 5)
 
 1. Power BI Desktop → **Blank report** → **Home → Get data → More… → Parquet**.
 2. Paste the full path, e.g. `D:\ecommerce-customer-experience-analytics\data\powerbi\fact_orders.parquet` → **OK → Load**. Repeat for `dim_date`, `dim_customer`, `dim_seller`, `dim_product`, `fact_order_items`.
@@ -174,7 +174,9 @@ Then:
 
 ---
 
-## Step 8b: Page 5, "Review themes" (GenAI Module 2)
+## Step 8b (optional, not built in the saved report): Page 5, "Review themes" (GenAI Module 2)
+
+> The saved `.pbix` has 4 pages. Module 2 results are shown in the Streamlit app (Review themes page). These steps remain for anyone who wants the themes in Power BI too.
 
 **Data:** `python scripts/export_powerbi.py` also writes `data/powerbi/fact_review_theme.parquet` once Module 2 has run (`python -m genai.review_themes.apply cascade`). Load it like the other tables (Step 1).
 

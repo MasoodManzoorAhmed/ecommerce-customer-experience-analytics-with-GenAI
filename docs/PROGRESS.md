@@ -3,7 +3,7 @@
 Update this file at the end of every work session: tick tasks, record real numbers, note decisions and blockers.
 Also add that day's likely interview questions (with real numbers) to `docs/INTERVIEW_PREP.md`.
 
-## Status: Day 7 packaging: repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) complete; app live on Streamlit Cloud with README screenshots; next: Gemma comparison, Power BI page 5
+## Status: Day 7 packaging: repo public on GitHub with CI green; Module 1 (80.4% local, 93.5% hosted) and Module 2 (cascade over 14,246 reviews, gold kappa 0.876) complete; app live on Streamlit Cloud with README screenshots; next: Gemma comparison
 
 ### Day 0: Setup
 - [x] Project folder + docs created (PRD, goals, architecture, README, start prompt)
@@ -69,8 +69,8 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 - [x] Second-annotator agreement: kappa 0.876 (north-mini-code vs gold)
 - [x] Apply to all reviews → `fact_review_theme` → app Themes page (LoRA labels; cascade LLM pass running)
 - [x] Cascade final labels (published 2026-10-26)
-- [x] Power BI review-themes page: data export, 3 measures, guide (Step 8b)
-- [ ] Build Page 5 in the .pbix (owner, by hand) + screenshot
+- [x] Power BI review-themes page prepared: data export, 3 measures, guide (Step 8b, optional)
+- [~] Power BI Page 5: skipped by owner's decision (2026-10-27); review themes are shown in the app instead
 - [ ] Final README · 3-minute demo video · LinkedIn post
 
 ## Results log (real numbers only)
@@ -257,6 +257,7 @@ Also add that day's likely interview questions (with real numbers) to `docs/INTE
 | 2026-10-24 | App questions use their own LLM cache (`app/.cache`, git-ignored) | Typed questions never mix with the evaluation cache or results |
 | 2026-10-26 | Git history cleaned before the first push: personal planning notes removed from all commits; all commits authored as Masood Manzoor Ahmed (old global identity replaced) | Public portfolio: no personal job-search notes, one consistent author; done before publishing so no shared history was rewritten |
 | 2026-10-26 | CI publishes the last pytest lines as an annotation on failure | Job logs need a GitHub login; annotations are public, so a failing run explains itself |
+| 2026-10-27 | Power BI Page 5 (review themes) not built | Owner's decision: the dashboard keeps its 4 pages; Module 2 results are shown on the app's Review themes page (live) and in the README. Export, measures and guide stay as an optional extension |
 
 ## Blockers / notes
 - `ARCHITECTURE.md` artefact name changed: `models/late_delivery_model.pkl` (was `late_delivery_lgbm.pkl`) because logistic regression won.
