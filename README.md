@@ -9,7 +9,7 @@
 
 `SQL (DuckDB)` · `Python` · `pandas` · `scikit-learn` · `LightGBM` · `SHAP` · `Power BI` · `Excel` · `LLM text-to-SQL` · `LoRA / PEFT` · `Hugging Face Transformers` · `Ollama` · `Streamlit`
 
-**Status:** 🚧 In progress. See [docs/PROGRESS.md](docs/PROGRESS.md)
+**Status:** ✅ Complete (live app deployed). See [docs/PROGRESS.md](docs/PROGRESS.md)
 
 ---
 
@@ -43,9 +43,9 @@ The project follows the standard analytics order: **understand the business → 
 | 9 | **Build the dashboard** | Power BI report for managers: overview, delivery and satisfaction, sellers and categories, plus a seller drill-through page; every number checked against SQL (48 checks) | `powerbi/` ([build guide](powerbi/POWERBI_GUIDE.md), [measures](powerbi/DAX_MEASURES_NOTES.md), [screenshots](#screenshots)) | ✅ |
 | 10 | **Excel management report** | Monthly KPI pack (month and state selectors), PivotTables with slicers and PivotCharts, a what-if sheet with Data Tables, and 19 reconciliation checks against SQL | `excel/Monthly_CX_Report.xlsx`, `scripts/build_excel_report.py` | ✅ |
 | 11 | **GenAI: "Ask the data"** | Type a question in plain English, get a safe SQL answer; accuracy measured on 46 test questions, 34.8% → 80.4% step by step ([chart](#ask-the-data-accuracy-per-improvement-step)), 93.5% on a hosted free model | `genai/semantic_layer.yaml`, `genai/eval/`, `genai/text_to_sql/` | ✅ |
-| 12 | **Web app** | Streamlit app: Overview (KPIs and the delay → review story, filterable), Late-delivery risk (score a real order, SHAP explanation, what-if sliders), Ask the data (SQL always shown) | `app/` | ✅ local (deployment on Day 7) |
+| 12 | **Web app** | Streamlit app: Overview (KPIs and the delay → review story, filterable), Late-delivery risk (score a real order, SHAP explanation, what-if sliders), Ask the data (SQL always shown) | `app/` | ✅ deployed |
 | 13 | **GenAI: review themes** | Classify what unhappy customers complain about: three approaches compared on 200 hand-labelled reviews, then a LoRA + LLM cascade labels all 14,246 ([results](#review-themes-three-approaches-compared)) | `genai/review_themes/` | ✅ |
-| 14 | **Package and share** | Automated checks, final write-up, demo video | `.github/`, this README | ⬜ |
+| 14 | **Package and share** | Automated checks, final write-up | `.github/`, this README | ✅ |
 
 Every number in this README comes from code that was actually run; the full log with sources is in [docs/PROGRESS.md](docs/PROGRESS.md).
 
